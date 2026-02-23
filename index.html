@@ -33,6 +33,19 @@ input[type="color"]::-webkit-color-swatch{border:none;border-radius:4px}
 .smooth-scroll{scroll-behavior:smooth}
 .acc-body{max-height:0;overflow:hidden;transition:max-height 0.35s ease,padding 0.35s ease;padding:0 14px}
 .acc-body.open{max-height:300px;padding:10px 14px 14px}
+
+/* ── Mobile Overlay ── */
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideDown{from{transform:translateY(0)}to{transform:translateY(100%)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sidebar-overlay{animation:fadeIn .2s ease forwards}
+.sidebar-panel{animation:slideUp .3s ease forwards}
+
+/* ── Touch-friendly ── */
+@media(hover:none){
+  .btn-hover:hover{transform:none;box-shadow:none;filter:none}
+  .btn-hover:active{transform:scale(0.97);filter:brightness(0.95)}
+}
 </style>
 </head>
 <body>
@@ -40,32 +53,11 @@ input[type="color"]::-webkit-color-swatch{border:none;border-radius:4px}
 
 <!-- ══════════════════════════════════════════════════════════════
      KERN: Modul-Registry, Helfer & gemeinsame Komponenten
-     Dieser Block muss IMMER als erstes geladen werden.
      ══════════════════════════════════════════════════════════════ -->
 <script type="text/babel">
-/*
- * MODULAR - Modul-Registry-System
- * 
- * Jedes Modul registriert sich über window.MODULAR.register({...})
- * Die Haupt-App (ganz unten) liest dann alle registrierten Module.
- *
- * Modul-Struktur:
- * {
- *   id:    "hero",                          // Eindeutige ID
- *   name:  "Hero-Sektion",                  // Anzeigename
- *   cat:   "Einstieg",                      // Kategorie
- *   icon:  "◆",                             // Icon-Emoji
- *   desc:  "Beschreibung...",               // Kurzbeschreibung
- *   vars:  ["Fullscreen","Split","Minimal"],// Darstellungs-Varianten
- *   texts: { "hero-title": "Standard..." }, // Standard-Texte
- *   render: function(cfg, edit) { ... }     // React-Render-Funktion
- * }
- */
-
 window.MODULAR = {
   _modules: [],
   register: function(mod) {
-    // Duplikate verhindern
     if (!this._modules.find(m => m.id === mod.id)) {
       this._modules.push(mod);
     }
@@ -86,6 +78,18 @@ window.li = function(hex, a) {
   return 'rgb('+Math.round(r+(255-r)*a)+','+Math.round(g+(255-g)*a)+','+Math.round(b+(255-b)*a)+')';
 };
 
+/* ── useWindowWidth Hook ── */
+window.useWindowWidth = function useWindowWidth() {
+  var st = React.useState(window.innerWidth);
+  var w = st[0], setW = st[1];
+  React.useEffect(function() {
+    var h = function() { setW(window.innerWidth); };
+    window.addEventListener("resize", h);
+    return function() { window.removeEventListener("resize", h); };
+  }, []);
+  return w;
+};
+
 /* ── Icons ── */
 window.MI = {
   check: React.createElement('svg',{width:16,height:16,viewBox:"0 0 16 16",fill:"none"},React.createElement('path',{d:"M3 8l3.5 3.5L13 5",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round"})),
@@ -101,6 +105,9 @@ window.MI = {
   layers: React.createElement('svg',{width:18,height:18,viewBox:"0 0 20 20",fill:"none"},React.createElement('path',{d:"M10 2l8 4-8 4-8-4 8-4zM2 10l8 4 8-4M2 14l8 4 8-4",stroke:"currentColor",strokeWidth:1.5,strokeLinejoin:"round"})),
   image: React.createElement('svg',{width:18,height:18,viewBox:"0 0 20 20",fill:"none"},React.createElement('rect',{x:2,y:2,width:16,height:16,rx:2,stroke:"currentColor",strokeWidth:1.5}),React.createElement('circle',{cx:7,cy:7,r:2,stroke:"currentColor",strokeWidth:1.2}),React.createElement('path',{d:"M2 14l4-4 3 3 3-3 6 6",stroke:"currentColor",strokeWidth:1.3,strokeLinejoin:"round"})),
   typo: React.createElement('svg',{width:18,height:18,viewBox:"0 0 20 20",fill:"none"},React.createElement('path',{d:"M4 5h12M7 5v10M13 5v10M5 15h4M11 15h4",stroke:"currentColor",strokeWidth:1.5,strokeLinecap:"round"})),
+  menu: React.createElement('svg',{width:22,height:22,viewBox:"0 0 24 24",fill:"none"},React.createElement('path',{d:"M3 6h18M3 12h18M3 18h18",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round"})),
+  close: React.createElement('svg',{width:22,height:22,viewBox:"0 0 24 24",fill:"none"},React.createElement('path',{d:"M6 6l12 12M18 6l-12 12",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round"})),
+  settings: React.createElement('svg',{width:20,height:20,viewBox:"0 0 20 20",fill:"none"},React.createElement('path',{d:"M3 5h14M3 10h14M3 15h14",stroke:"currentColor",strokeWidth:1.5,strokeLinecap:"round"}),React.createElement('circle',{cx:7,cy:5,r:2,fill:"currentColor"}),React.createElement('circle',{cx:13,cy:10,r:2,fill:"currentColor"}),React.createElement('circle',{cx:9,cy:15,r:2,fill:"currentColor"})),
 };
 
 /* ── Editierbares Text-Element ── */
@@ -128,7 +135,7 @@ window.FileUpload = function FileUpload({label, accept, onUp, preview, onRm}) {
       : <button onClick={()=>ref.current?.click()} style={{width:"100%",padding:"14px 10px",border:"2px dashed rgba(0,0,0,.13)",borderRadius:8,background:"transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:"inherit",opacity:.5,transition:"all .2s",fontFamily:"inherit"}}
           onMouseEnter={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.borderColor="rgba(0,0,0,.3)"}}
           onMouseLeave={e=>{e.currentTarget.style.opacity=".5";e.currentTarget.style.borderColor="rgba(0,0,0,.13)"}}>
-          {window.MI.upload}<span style={{fontSize:11}}>Datei auswählen</span>
+          {window.MI.upload}<span style={{fontSize:11}}>Datei auswaehlen</span>
         </button>
     }
     <input ref={ref} type="file" accept={accept} onChange={hf} style={{display:"none"}}/>
@@ -170,11 +177,11 @@ window.MODULAR.register({
   name: "Navigation",
   cat: "Header",
   icon: "☰",
-  desc: "Hauptmenü mit Logo und Menüpunkten",
+  desc: "Hauptmenue mit Logo und Menuepunkten",
   vars: ["Standard", "Transparent", "Zentriert"],
   texts: {
     "nav-name": "Ihr Unternehmen",
-    "nav-1": "Start", "nav-2": "Leistungen", "nav-3": "Über uns", "nav-4": "Kontakt"
+    "nav-1": "Start", "nav-2": "Leistungen", "nav-3": "Ueber uns", "nav-4": "Kontakt"
   },
   render: function(cfg, edit) {
     const {colors, logo, companyName: cn, font, variants, previewMode} = cfg;
@@ -182,14 +189,12 @@ window.MODULAR.register({
     const mob = previewMode === "mobile";
     const v = variants["nav"] || 0;
     const ET = window.ET;
-
     const styles = [
       {bg: colors.primary, color: "#fff"},
       {bg: "transparent", color: colors.primary, borderBottom: "1px solid " + colors.primary + "22"},
       {bg: colors.primary, color: "#fff", justifyContent: "center", flexDirection: "column", alignItems: "center", gap: 6},
     ];
     const s = styles[v] || styles[0];
-
     return <div style={{padding: mob ? "10px 16px" : "12px 32px", display: "flex", alignItems: "center", justifyContent: s.justifyContent || "space-between", flexDirection: s.flexDirection || "row", gap: s.gap, background: s.bg, color: s.color, fontFamily: ff, borderBottom: s.borderBottom || "none"}}>
       <div style={{display: "flex", alignItems: "center", gap: 10}}>
         {logo ? <img src={logo} alt="" style={{height: mob ? 22 : 28, width: "auto"}}/> : <div style={{width: 28, height: 28, borderRadius: 6, background: "rgba(128,128,128,.2)"}}/>}
@@ -198,6 +203,7 @@ window.MODULAR.register({
       {!mob && <div style={{display: "flex", gap: 20, fontSize: 12, opacity: .85}}>
         {["nav-1","nav-2","nav-3","nav-4"].map(k => <ET key={k} k={k} cfg={cfg} edit={edit} tag="span" style={{cursor: "default"}}/>)}
       </div>}
+      {mob && <div style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", opacity: .7}}>☰</div>}
     </div>;
   }
 });
@@ -210,15 +216,15 @@ window.MODULAR.register({
   name: "Text-Content",
   cat: "Inhalt",
   icon: "¶",
-  desc: "Flexibler Textblock mit Überschrift, Fließtext und optionaler Highlight-Box",
+  desc: "Flexibler Textblock mit Ueberschrift, Fliesstext und optionaler Highlight-Box",
   vars: ["Zentriert", "Zweispaltig", "Mit Highlight-Box"],
   texts: {
     "tc-overtitle": "Wissenswertes",
     "tc-title": "Was uns auszeichnet",
-    "tc-text1": "Wir verbinden jahrelange Erfahrung mit einem klaren Fokus auf Qualität. Jedes Projekt wird individuell betreut – von der ersten Idee bis zum fertigen Ergebnis. Dabei setzen wir auf transparente Kommunikation und enge Zusammenarbeit.",
-    "tc-text2": "Unser Anspruch ist es, nicht nur Erwartungen zu erfüllen, sondern sie zu übertreffen. Mit bewährten Methoden und einem Auge fürs Detail schaffen wir Lösungen, die nachhaltig überzeugen und echten Mehrwert bieten.",
-    "tc-highlight": "Qualität bedeutet, es richtig zu machen – auch wenn niemand zuschaut.",
-    "tc-highlight-author": "– Unser Leitsatz"
+    "tc-text1": "Wir verbinden jahrelange Erfahrung mit einem klaren Fokus auf Qualitaet. Jedes Projekt wird individuell betreut - von der ersten Idee bis zum fertigen Ergebnis. Dabei setzen wir auf transparente Kommunikation und enge Zusammenarbeit.",
+    "tc-text2": "Unser Anspruch ist es, nicht nur Erwartungen zu erfuellen, sondern sie zu uebertreffen. Mit bewaehrten Methoden und einem Auge fuers Detail schaffen wir Loesungen, die nachhaltig ueberzeugen und echten Mehrwert bieten.",
+    "tc-highlight": "Qualitaet bedeutet, es richtig zu machen - auch wenn niemand zuschaut.",
+    "tc-highlight-author": "- Unser Leitsatz"
   },
   render: function(cfg, edit) {
     const {colors, font, variants, previewMode} = cfg;
@@ -241,7 +247,6 @@ window.MODULAR.register({
         </div>
       </div>;
     }
-
     if (isTwoCols) {
       return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
         <div style={{marginBottom: mob ? 16 : 24}}>
@@ -258,7 +263,6 @@ window.MODULAR.register({
         </div>
       </div>;
     }
-
     return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
       <div style={{display: "flex", gap: mob ? 16 : 28, flexDirection: mob ? "column" : "row", alignItems: "flex-start"}}>
         <div style={{flex: 1}}>
@@ -285,12 +289,12 @@ window.MODULAR.register({
   name: "Hero-Sektion",
   cat: "Einstieg",
   icon: "◆",
-  desc: "Großflächiger Einstiegsbereich mit Überschrift und CTA",
+  desc: "Grossflaechiger Einstiegsbereich mit Ueberschrift und CTA",
   vars: ["Fullscreen", "Split", "Minimal"],
   texts: {
     "hero-overtitle": "Willkommen",
     "hero-title": "Professionelle Websites.\nModular gebaut.",
-    "hero-sub": "Wir erstellen Ihre individuelle Website aus hochwertigen Bausteinen – schnell, flexibel und auf Ihre Branche zugeschnitten.",
+    "hero-sub": "Wir erstellen Ihre individuelle Website aus hochwertigen Bausteinen - schnell, flexibel und auf Ihre Branche zugeschnitten.",
     "hero-cta1": "Jetzt starten",
     "hero-cta2": "Mehr erfahren"
   },
@@ -303,7 +307,6 @@ window.MODULAR.register({
     const li = window.li;
     const isMin = v === 2, isSplit = v === 1;
     const sec = {padding: "0", background: isMin ? "#fff" : colors.primary, minHeight: mob ? 180 : 220, display: "flex", alignItems: isSplit ? "center" : "center", flexDirection: isSplit && !mob ? "row" : "column", color: isMin ? colors.primary : "#fff", overflow: "hidden", fontFamily: ff, position: "relative"};
-
     return <div style={sec}>
       {heroImage && !isMin && <div style={{position: "absolute", inset: 0, backgroundImage: "url(" + heroImage + ")", backgroundSize: "cover", backgroundPosition: "center", opacity: .25}}/>}
       <div style={{position: "relative", zIndex: 1, padding: mob ? "32px 20px" : "48px 32px", maxWidth: isSplit ? 420 : 480, flex: isSplit ? 1 : undefined}}>
@@ -326,29 +329,23 @@ window.MODULAR.register({
 <!-- MODUL-FEATURES -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "features",
-  name: "Feature-Grid",
-  cat: "Inhalt",
-  icon: "▦",
+  id: "features", name: "Feature-Grid", cat: "Inhalt", icon: "▦",
   desc: "Leistungen als Raster mit Icons und Beschreibungen",
   vars: ["3er-Grid", "2er-Grid", "Liste"],
   texts: {
-    "features-overtitle": "Leistungen",
-    "features-title": "Was wir für Sie tun",
-    "feat-1-title": "Webdesign", "feat-1-desc": "Individuelle Gestaltung nach Ihren Wünschen",
-    "feat-2-title": "Responsive", "feat-2-desc": "Perfekt auf allen Geräten",
-    "feat-3-title": "SEO", "feat-3-desc": "Für Suchmaschinen optimiert"
+    "features-overtitle": "Leistungen", "features-title": "Was wir fuer Sie tun",
+    "feat-1-title": "Webdesign", "feat-1-desc": "Individuelle Gestaltung nach Ihren Wuenschen",
+    "feat-2-title": "Responsive", "feat-2-desc": "Perfekt auf allen Geraeten",
+    "feat-3-title": "SEO", "feat-3-desc": "Fuer Suchmaschinen optimiert"
   },
   render: function(cfg, edit) {
     const {colors, font, variants, previewMode} = cfg;
     const ff = font || "'DM Sans',sans-serif";
     const mob = previewMode === "mobile";
     const v = variants["features"] || 0;
-    const ET = window.ET;
-    const li = window.li;
+    const ET = window.ET; const li = window.li;
     const cols = v === 1 ? 2 : v === 2 ? 1 : 3;
     const isList = v === 2;
-
     return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
       <div style={{textAlign: "center", marginBottom: mob ? 20 : 28}}>
         <ET k="features-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
@@ -373,41 +370,33 @@ window.MODULAR.register({
 <!-- MODUL-TEXTIMAGE -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "textimage",
-  name: "Text-Bild",
-  cat: "Inhalt",
-  icon: "◧",
-  desc: "Fließtext mit Bild kombiniert",
+  id: "textimage", name: "Text-Bild", cat: "Inhalt", icon: "◧",
+  desc: "Fliesstext mit Bild kombiniert",
   vars: ["Bild rechts", "Bild links", "Vollbild-Hintergrund"],
   texts: {
-    "textimage-overtitle": "Über uns",
-    "textimage-title": "Ihr Partner für digitale Präsenz",
-    "textimage-desc": "Wir kombinieren durchdachtes Design mit modernster Technologie, um Websites zu schaffen, die Ihre Kunden begeistern und Ihr Geschäft voranbringen."
+    "textimage-overtitle": "Ueber uns",
+    "textimage-title": "Ihr Partner fuer digitale Praesenz",
+    "textimage-desc": "Wir kombinieren durchdachtes Design mit modernster Technologie, um Websites zu schaffen, die Ihre Kunden begeistern und Ihr Geschaeft voranbringen."
   },
   render: function(cfg, edit) {
     const {colors, heroImage, font, variants, previewMode} = cfg;
     const ff = font || "'DM Sans',sans-serif";
     const mob = previewMode === "mobile";
     const v = variants["textimage"] || 0;
-    const ET = window.ET;
-    const li = window.li;
+    const ET = window.ET; const li = window.li;
     const isFull = v === 2, isLeft = v === 1;
-
     const textSide = <div style={{flex: 1}}>
       <ET k="textimage-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: isFull ? "rgba(255,255,255,.7)" : colors.secondary, marginBottom: 6}}/>
       <ET k="textimage-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 16 : 18, fontWeight: 700, color: isFull ? "#fff" : colors.primary, margin: "0 0 10px", fontFamily: ff}}/>
       <ET k="textimage-desc" cfg={cfg} edit={edit} tag="p" style={{fontSize: 12, lineHeight: 1.6, opacity: isFull ? .8 : .7, margin: 0}}/>
     </div>;
-
     const imgSide = <div style={{width: mob ? "100%" : 180, height: mob ? 140 : 120, borderRadius: 10, background: "linear-gradient(135deg," + colors.primary + "," + colors.secondary + ")", flexShrink: 0, overflow: "hidden"}}>
       {heroImage && <img src={heroImage} alt="" style={{width: "100%", height: "100%", objectFit: "cover"}}/>}
     </div>;
-
     if (isFull) return <div style={{padding: 0, background: colors.primary, color: "#fff", minHeight: 160, display: "flex", alignItems: "center", overflow: "hidden", fontFamily: ff, position: "relative"}}>
       {heroImage && <div style={{position: "absolute", inset: 0, backgroundImage: "url(" + heroImage + ")", backgroundSize: "cover", opacity: .2}}/>}
       <div style={{position: "relative", zIndex: 1, padding: mob ? "32px 20px" : "48px 32px", maxWidth: 500}}>{textSide}</div>
     </div>;
-
     return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: li(colors.primary), display: "flex", gap: mob ? 16 : 24, alignItems: "center", flexDirection: mob ? "column" : (isLeft ? "row-reverse" : "row"), fontFamily: ff}}>
       {textSide}{imgSide}
     </div>;
@@ -418,16 +407,12 @@ window.MODULAR.register({
 <!-- MODUL-TESTIMONIALS -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "testimonials",
-  name: "Testimonials",
-  cat: "Social Proof",
-  icon: "❝",
+  id: "testimonials", name: "Testimonials", cat: "Social Proof", icon: "❝",
   desc: "Kundenstimmen mit Bewertungen",
   vars: ["Karten", "Zitat-Fokus", "Minimal"],
   texts: {
-    "testimonials-overtitle": "Kundenstimmen",
-    "testimonials-title": "Was unsere Kunden sagen",
-    "test-1-text": "Hervorragende Qualität und schnelle Umsetzung!",
+    "testimonials-overtitle": "Kundenstimmen", "testimonials-title": "Was unsere Kunden sagen",
+    "test-1-text": "Hervorragende Qualitaet und schnelle Umsetzung!",
     "test-1-name": "Maria S.", "test-1-role": "Restaurantbesitzerin",
     "test-2-text": "Endlich eine Website, die zu meiner Praxis passt.",
     "test-2-name": "Dr. Thomas K.", "test-2-role": "Arzt"
@@ -437,10 +422,8 @@ window.MODULAR.register({
     const ff = font || "'DM Sans',sans-serif";
     const mob = previewMode === "mobile";
     const v = variants["testimonials"] || 0;
-    const ET = window.ET;
-    const li = window.li;
+    const ET = window.ET; const li = window.li;
     const isQuote = v === 1, isMin = v === 2;
-
     return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
       <div style={{textAlign: "center", marginBottom: mob ? 16 : 24}}>
         <ET k="testimonials-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
@@ -464,16 +447,13 @@ window.MODULAR.register({
 <!-- MODUL-TEAM -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "team",
-  name: "Team-Sektion",
-  cat: "Inhalt",
-  icon: "◉",
+  id: "team", name: "Team-Sektion", cat: "Inhalt", icon: "◉",
   desc: "Team mit Foto, Name und Position",
   vars: ["Grid", "Rund", "Mit Mission"],
   texts: {
     "team-title": "Unser Team",
-    "team-mission": "Unsere Mission ist es, jedem Unternehmen eine professionelle digitale Präsenz zu ermöglichen – effizient, individuell und auf höchstem Niveau.",
-    "team-1-name": "Anna Müller", "team-1-role": "Geschäftsführung",
+    "team-mission": "Unsere Mission ist es, jedem Unternehmen eine professionelle digitale Praesenz zu ermoeglichen.",
+    "team-1-name": "Anna Mueller", "team-1-role": "Geschaeftsfuehrung",
     "team-2-name": "Max Weber", "team-2-role": "Design",
     "team-3-name": "Lisa Koch", "team-3-role": "Entwicklung"
   },
@@ -482,11 +462,9 @@ window.MODULAR.register({
     const ff = font || "'DM Sans',sans-serif";
     const mob = previewMode === "mobile";
     const v = variants["team"] || 0;
-    const ET = window.ET;
-    const li = window.li;
+    const ET = window.ET; const li = window.li;
     const allTexts = window.MODULAR.getAllTexts();
     const showMission = v === 2;
-
     return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: li(colors.primary), fontFamily: ff}}>
       <div style={{textAlign: "center", marginBottom: showMission ? 12 : 24}}>
         <ET k="team-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 17 : 20, fontWeight: 700, color: colors.primary, margin: 0, fontFamily: ff}}/>
@@ -498,9 +476,7 @@ window.MODULAR.register({
         {[1, 2, 3].map(function(i) {
           var name = texts["team-" + i + "-name"] || allTexts["team-" + i + "-name"] || "?";
           return <div key={i} style={{textAlign: "center", width: mob ? 80 : 100}}>
-            <div style={{width: mob ? 50 : 64, height: mob ? 50 : 64, borderRadius: v === 1 ? "10px" : "50%", background: "linear-gradient(135deg," + colors.primary + "," + colors.secondary + ")", margin: "0 auto 8px", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: mob ? 16 : 20}}>
-              {name[0]}
-            </div>
+            <div style={{width: mob ? 50 : 64, height: mob ? 50 : 64, borderRadius: v === 1 ? "10px" : "50%", background: "linear-gradient(135deg," + colors.primary + "," + colors.secondary + ")", margin: "0 auto 8px", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: mob ? 16 : 20}}>{name[0]}</div>
             <ET k={"team-" + i + "-name"} cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 11 : 12, fontWeight: 700, color: colors.primary}}/>
             <ET k={"team-" + i + "-role"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, opacity: .5}}/>
           </div>;
@@ -514,15 +490,11 @@ window.MODULAR.register({
 <!-- MODUL-VIDEO -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "video",
-  name: "Video",
-  cat: "Inhalt",
-  icon: "▶",
+  id: "video", name: "Video", cat: "Inhalt", icon: "▶",
   desc: "YouTube-Video einbetten mit Titel und optionalem Text",
   vars: ["Zentriert", "Mit Text rechts", "Fullwidth"],
   texts: {
-    "vid-overtitle": "Video",
-    "vid-title": "Sehen Sie selbst",
+    "vid-overtitle": "Video", "vid-title": "Sehen Sie selbst",
     "vid-desc": "Erfahren Sie in diesem kurzen Video mehr ueber uns und unsere Arbeitsweise.",
     "vid-url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "vid-caption": "Unser Vorstellungsvideo"
@@ -532,24 +504,14 @@ window.MODULAR.register({
     const ff = font || "'DM Sans',sans-serif";
     const mob = previewMode === "mobile";
     const v = variants["video"] || 0;
-    const ET = window.ET;
-    const li = window.li;
-    const isCentered = v === 0;
-    const isWithText = v === 1;
-
+    const ET = window.ET; const li = window.li;
     var raw = cfg.texts["vid-url"] || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
     var embedId = "";
-    if (raw.indexOf("youtu.be/") !== -1) {
-      embedId = raw.split("youtu.be/")[1].split("?")[0].split("&")[0];
-    } else if (raw.indexOf("v=") !== -1) {
-      embedId = raw.split("v=")[1].split("&")[0].split("?")[0];
-    } else if (raw.indexOf("embed/") !== -1) {
-      embedId = raw.split("embed/")[1].split("?")[0].split("&")[0];
-    }
+    if (raw.indexOf("youtu.be/") !== -1) embedId = raw.split("youtu.be/")[1].split("?")[0].split("&")[0];
+    else if (raw.indexOf("v=") !== -1) embedId = raw.split("v=")[1].split("&")[0].split("?")[0];
+    else if (raw.indexOf("embed/") !== -1) embedId = raw.split("embed/")[1].split("?")[0].split("&")[0];
     var embedUrl = embedId ? "https://www.youtube-nocookie.com/embed/" + embedId : "";
-    var thumbUrl = embedId ? "https://img.youtube.com/vi/" + embedId + "/hqdefault.jpg" : "";
-
-    var videoBlock = function(w, h) {
+    var videoBlock = function() {
       return <div style={{width: "100%", borderRadius: 10, overflow: "hidden", background: "#000", position: "relative"}}>
         {embedUrl
           ? <div style={{position: "relative", paddingBottom: "56.25%", height: 0}}>
@@ -562,8 +524,7 @@ window.MODULAR.register({
         }
       </div>;
     };
-
-    if (isCentered) {
+    if (v === 0) {
       return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
         <div style={{maxWidth: 680, margin: "0 auto"}}>
           <div style={{textAlign: "center", marginBottom: mob ? 14 : 20}}>
@@ -571,9 +532,7 @@ window.MODULAR.register({
             <ET k="vid-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 18 : 22, fontWeight: 700, color: colors.primary, margin: 0, lineHeight: 1.3, fontFamily: ff}}/>
           </div>
           {videoBlock()}
-          <div style={{marginTop: 10, textAlign: "center"}}>
-            <ET k="vid-caption" cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, opacity: .45, fontStyle: "italic"}}/>
-          </div>
+          <div style={{marginTop: 10, textAlign: "center"}}><ET k="vid-caption" cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, opacity: .45, fontStyle: "italic"}}/></div>
           {edit && <div style={{marginTop: 12, padding: "8px 12px", borderRadius: 6, background: li(colors.primary), border: "1px solid rgba(0,0,0,.06)"}}>
             <div style={{fontSize: 9, fontWeight: 700, opacity: .4, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 4}}>YouTube-URL</div>
             <ET k="vid-url" cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, fontFamily: "monospace", wordBreak: "break-all", opacity: .7}}/>
@@ -581,13 +540,10 @@ window.MODULAR.register({
         </div>
       </div>;
     }
-
-    if (isWithText) {
+    if (v === 1) {
       return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
         <div style={{display: "flex", gap: mob ? 16 : 28, flexDirection: mob ? "column" : "row", alignItems: "center"}}>
-          <div style={{flex: 1, minWidth: 0}}>
-            {videoBlock()}
-          </div>
+          <div style={{flex: 1, minWidth: 0}}>{videoBlock()}</div>
           <div style={{flex: 1}}>
             <ET k="vid-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
             <ET k="vid-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 16 : 20, fontWeight: 700, color: colors.primary, margin: "0 0 12px", lineHeight: 1.3, fontFamily: ff}}/>
@@ -600,27 +556,17 @@ window.MODULAR.register({
         </div>
       </div>;
     }
-
     return <div style={{padding: 0, fontFamily: ff, position: "relative"}}>
       <div style={{position: "relative"}}>
         {embedUrl
-          ? <div style={{position: "relative", paddingBottom: "56.25%", height: 0, background: "#000"}}>
-              <iframe src={embedUrl} style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none"}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
-            </div>
-          : <div style={{aspectRatio: "16/9", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, background: colors.primary}}>
-              <div style={{width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,.15)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22}}>▶</div>
-              <div style={{fontSize: 12, color: "#fff", opacity: .4}}>YouTube-URL eingeben</div>
-            </div>
+          ? <div style={{position: "relative", paddingBottom: "56.25%", height: 0, background: "#000"}}><iframe src={embedUrl} style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none"}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>
+          : <div style={{aspectRatio: "16/9", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, background: colors.primary}}><div style={{width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,.15)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22}}>▶</div></div>
         }
       </div>
-      <div style={{padding: (mob ? 12 : 16) + "px " + (mob ? 20 : 32) + "px", background: colors.primary, color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12}}>
+      <div style={{padding: (mob ? 12 : 16) + "px " + (mob ? 20 : 32) + "px", background: colors.primary, color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap"}}>
         <ET k="vid-caption" cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 11 : 12, fontWeight: 600, opacity: .8}}/>
         <ET k="vid-title" cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 10 : 11, opacity: .4}}/>
       </div>
-      {edit && <div style={{padding: "8px " + (mob ? 20 : 32) + "px 12px", background: li(colors.primary), borderTop: "1px solid rgba(0,0,0,.06)"}}>
-        <div style={{fontSize: 9, fontWeight: 700, opacity: .4, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 4}}>YouTube-URL</div>
-        <ET k="vid-url" cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, fontFamily: "monospace", wordBreak: "break-all", opacity: .7}}/>
-      </div>}
     </div>;
   }
 });
@@ -629,13 +575,11 @@ window.MODULAR.register({
 <!-- MODUL-FAQ -->
 <script type="text/babel">
 (function() {
-  /* FAQ Akkordeon-Item Komponente (lokal für dieses Modul) */
   function FaqItem({i, cfg, edit, colors}) {
     const [open, setOpen] = React.useState(false);
-    var ET = window.ET;
-    var li = window.li;
+    var ET = window.ET; var li = window.li;
     return <div style={{borderRadius: 8, background: li(colors.primary), overflow: "hidden", border: "1px solid " + (open ? colors.secondary + "44" : "transparent"), transition: "border .3s"}}>
-      <div onClick={function(){setOpen(!open)}} style={{padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer"}}>
+      <div onClick={function(){setOpen(!open)}} style={{padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", minHeight: 44}}>
         <ET k={"faq-" + i + "-q"} cfg={cfg} edit={edit} tag="span" style={{fontSize: 12, fontWeight: 600, color: colors.primary, flex: 1}}/>
         <span style={{color: colors.secondary, transform: open ? "rotate(90deg)" : "rotate(0deg)", transition: "transform .3s", display: "inline-flex", flexShrink: 0, marginLeft: 8}}>{window.MI.chev}</span>
       </div>
@@ -644,22 +588,18 @@ window.MODULAR.register({
       </div>
     </div>;
   }
-
   window.MODULAR.register({
-    id: "faq",
-    name: "FAQ / Akkordeon",
-    cat: "Inhalt",
-    icon: "?",
-    desc: "Aufklappbare häufig gestellte Fragen",
+    id: "faq", name: "FAQ / Akkordeon", cat: "Inhalt", icon: "?",
+    desc: "Aufklappbare haeufig gestellte Fragen",
     vars: ["Standard", "Zweispaltig"],
     texts: {
-      "faq-title": "Häufige Fragen",
+      "faq-title": "Haeufige Fragen",
       "faq-1-q": "Wie lange dauert die Erstellung einer Website?",
-      "faq-1-a": "In der Regel dauert es 5–10 Stunden von der Konfiguration bis zur fertigen Website, dank unserer modularen Architektur.",
+      "faq-1-a": "In der Regel dauert es 5-10 Stunden von der Konfiguration bis zur fertigen Website, dank unserer modularen Architektur.",
       "faq-2-q": "Kann ich die Website selbst bearbeiten?",
-      "faq-2-a": "Ja, über das integrierte CMS können Sie Texte, Bilder und Inhalte jederzeit selbst anpassen.",
+      "faq-2-a": "Ja, ueber das integrierte CMS koennen Sie Texte, Bilder und Inhalte jederzeit selbst anpassen.",
       "faq-3-q": "Was kostet eine Website?",
-      "faq-3-a": "Unsere Pakete starten ab 499€. Der finale Preis hängt von den gewählten Modulen und Anpassungen ab."
+      "faq-3-a": "Unsere Pakete starten ab 499 Euro. Der finale Preis haengt von den gewaehlten Modulen und Anpassungen ab."
     },
     render: function(cfg, edit) {
       var {colors, font, variants, previewMode} = cfg;
@@ -668,7 +608,6 @@ window.MODULAR.register({
       var v = variants["faq"] || 0;
       var ET = window.ET;
       var twoCols = v === 1 && !mob;
-
       return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
         <ET k="faq-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 17 : 20, fontWeight: 700, color: colors.primary, margin: "0 0 20px", textAlign: "center", fontFamily: ff}}/>
         <div style={{display: twoCols ? "grid" : "flex", gridTemplateColumns: twoCols ? "1fr 1fr" : undefined, flexDirection: twoCols ? undefined : "column", gap: 8, maxWidth: twoCols ? undefined : 600, margin: "0 auto"}}>
@@ -683,29 +622,20 @@ window.MODULAR.register({
 <!-- MODUL-CONTACT -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "contact",
-  name: "Kontakt",
-  cat: "Konversion",
-  icon: "✉",
+  id: "contact", name: "Kontakt", cat: "Konversion", icon: "✉",
   desc: "Formular mit Adresse und Google Maps",
   vars: ["Mit Karte", "Kompakt", "Vollbreite"],
-  texts: {
-    "contact-title": "Kontakt",
-    "contact-btn": "Nachricht senden"
-  },
+  texts: { "contact-title": "Kontakt", "contact-btn": "Nachricht senden" },
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode, companyName: cn, address, phone, email: em, city, zip} = cfg;
     var ff = font || "'DM Sans',sans-serif";
     var mob = previewMode === "mobile";
     var v = variants["contact"] || 0;
-    var ET = window.ET;
-    var li = window.li;
+    var ET = window.ET; var li = window.li;
     var fullAddr = [address, (zip && city) ? (zip + " " + city) : (city || zip)].filter(Boolean).join(", ");
     var hasAddr = !!fullAddr;
     var showMap = v !== 1 && hasAddr;
-    var isCompact = v === 1;
     var isWide = v === 2;
-
     return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: li(colors.primary), fontFamily: ff}}>
       <ET k="contact-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 17 : 20, fontWeight: 700, color: colors.primary, margin: "0 0 20px", textAlign: "center", fontFamily: ff}}/>
       <div style={{display: "flex", gap: mob ? 16 : 20, flexDirection: mob || isWide ? "column" : "row"}}>
@@ -713,14 +643,14 @@ window.MODULAR.register({
           {["Name", "E-Mail", "Telefon", "Nachricht"].map(function(f, i) {
             return <div key={i} style={{marginBottom: 8}}>
               <div style={{fontSize: 10, fontWeight: 600, opacity: .5, marginBottom: 3}}>{f}</div>
-              <div style={{height: i === 3 ? 50 : 28, borderRadius: 6, border: "1px solid rgba(0,0,0,.08)", background: "#fff"}}/>
+              <div style={{height: i === 3 ? 50 : 36, borderRadius: 6, border: "1px solid rgba(0,0,0,.08)", background: "#fff"}}/>
             </div>;
           })}
-          <div className="btn-hover" style={{padding: "8px 20px", background: colors.primary, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 600, textAlign: "center", marginTop: 4}}>
+          <div className="btn-hover" style={{padding: "10px 20px", background: colors.primary, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 600, textAlign: "center", marginTop: 4}}>
             <ET k="contact-btn" cfg={cfg} edit={edit}/>
           </div>
         </div>
-        <div style={{width: mob ? "100%" : (isCompact ? 140 : 200), flexShrink: 0, display: "flex", flexDirection: "column", gap: 10}}>
+        <div style={{width: mob ? "100%" : 200, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10}}>
           {hasAddr && <div style={{padding: 12, borderRadius: 8, background: "#fff", border: "1px solid rgba(0,0,0,.06)"}}>
             <div style={{fontSize: 11, fontWeight: 700, color: colors.primary, marginBottom: 6}}>{cn || "Kontaktdaten"}</div>
             {address && <div style={{fontSize: 10, opacity: .6, marginBottom: 3}}>📍 {address}{(zip || city) ? (", " + (zip || "") + " " + (city || "")) : ""}</div>}
@@ -731,7 +661,7 @@ window.MODULAR.register({
             <iframe src={"https://maps.google.com/maps?q=" + encodeURIComponent(fullAddr) + "&t=&z=14&ie=UTF8&iwloc=&output=embed"} style={{width: "100%", height: "100%", border: "none"}} loading="lazy" title="Map"/>
           </div>}
           {!hasAddr && <div style={{flex: 1, minHeight: 100, borderRadius: 8, background: "linear-gradient(135deg," + colors.secondary + "33," + colors.primary + "22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, opacity: .35, textAlign: "center", padding: 10}}>
-            Adresse im Tab "Design" angeben für Google Maps
+            Adresse im Tab Design angeben fuer Google Maps
           </div>}
         </div>
       </div>
@@ -743,23 +673,15 @@ window.MODULAR.register({
 <!-- MODUL-LEISTUNGEN -->
 <script type="text/babel">
 window.MODULAR.register({
-  id: "leistungen",
-  name: "Leistungsübersicht",
-  cat: "Inhalt",
-  icon: "✦",
+  id: "leistungen", name: "Leistungsuebersicht", cat: "Inhalt", icon: "✦",
   desc: "Detaillierte Leistungen mit Icons, Beschreibung und optionalem CTA",
   vars: ["Karten", "Liste mit Icons", "Kompakt-Reihe"],
   texts: {
-    "ls-overtitle": "Was wir bieten",
-    "ls-title": "Unsere Leistungen im Detail",
-    "ls-1-title": "Beratung",
-    "ls-1-desc": "Individuelle Analyse Ihrer Anforderungen und strategische Planung fuer optimale Ergebnisse.",
-    "ls-2-title": "Umsetzung",
-    "ls-2-desc": "Professionelle Realisierung mit modernsten Technologien und bewaehrten Methoden.",
-    "ls-3-title": "Betreuung",
-    "ls-3-desc": "Langfristige Begleitung, regelmaessige Updates und zuverlaessiger Support.",
-    "ls-4-title": "Optimierung",
-    "ls-4-desc": "Kontinuierliche Verbesserung durch Datenanalyse und gezielte Anpassungen.",
+    "ls-overtitle": "Was wir bieten", "ls-title": "Unsere Leistungen im Detail",
+    "ls-1-title": "Beratung", "ls-1-desc": "Individuelle Analyse Ihrer Anforderungen und strategische Planung.",
+    "ls-2-title": "Umsetzung", "ls-2-desc": "Professionelle Realisierung mit modernsten Technologien.",
+    "ls-3-title": "Betreuung", "ls-3-desc": "Langfristige Begleitung, regelmaessige Updates und Support.",
+    "ls-4-title": "Optimierung", "ls-4-desc": "Kontinuierliche Verbesserung durch Datenanalyse.",
     "ls-cta": "Alle Leistungen ansehen"
   },
   render: function(cfg, edit) {
@@ -767,48 +689,39 @@ window.MODULAR.register({
     const ff = font || "'DM Sans',sans-serif";
     const mob = previewMode === "mobile";
     const v = variants["leistungen"] || 0;
-    const ET = window.ET;
-    const li = window.li;
-    const isCards = v === 0;
-    const isList = v === 1;
+    const ET = window.ET; const li = window.li;
     const icons = ["◆", "▶", "◎", "↻"];
-
-    if (isCards) {
+    if (v === 0) {
       return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
         <div style={{textAlign: "center", marginBottom: mob ? 20 : 32}}>
           <ET k="ls-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
           <ET k="ls-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 18 : 22, fontWeight: 700, color: colors.primary, margin: 0, lineHeight: 1.3, fontFamily: ff}}/>
         </div>
         <div style={{display: "grid", gridTemplateColumns: mob ? "1fr" : "repeat(2, 1fr)", gap: mob ? 10 : 16}}>
-          {[1, 2, 3, 4].map(function(i) {
-            return <div key={i} style={{padding: mob ? 16 : 22, borderRadius: 12, background: "#fff", border: "1px solid rgba(0,0,0,.06)", transition: "all .3s", position: "relative", overflow: "hidden"}}
-              onMouseEnter={function(e){e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.06)"}}
-              onMouseLeave={function(e){e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}}>
+          {[1,2,3,4].map(function(i) {
+            return <div key={i} style={{padding: mob ? 16 : 22, borderRadius: 12, background: "#fff", border: "1px solid rgba(0,0,0,.06)", position: "relative", overflow: "hidden"}}>
               <div style={{position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: "linear-gradient(90deg," + colors.accent + "," + colors.secondary + ")"}}/>
-              <div style={{width: mob ? 34 : 40, height: mob ? 34 : 40, borderRadius: 10, background: li(colors.primary), color: colors.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, marginBottom: 12}}>{icons[i - 1]}</div>
+              <div style={{width: mob ? 34 : 40, height: mob ? 34 : 40, borderRadius: 10, background: li(colors.primary), color: colors.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, marginBottom: 12}}>{icons[i-1]}</div>
               <ET k={"ls-" + i + "-title"} cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 13 : 15, fontWeight: 700, color: colors.primary, marginBottom: 6, fontFamily: ff}}/>
               <ET k={"ls-" + i + "-desc"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, lineHeight: 1.6, opacity: .6}}/>
             </div>;
           })}
         </div>
         <div style={{textAlign: "center", marginTop: mob ? 16 : 24}}>
-          <span className="btn-hover" style={{padding: mob ? "8px 20px" : "10px 28px", background: colors.primary, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, display: "inline-block"}}>
-            <ET k="ls-cta" cfg={cfg} edit={edit}/>
-          </span>
+          <span className="btn-hover" style={{padding: mob ? "8px 20px" : "10px 28px", background: colors.primary, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, display: "inline-block"}}><ET k="ls-cta" cfg={cfg} edit={edit}/></span>
         </div>
       </div>;
     }
-
-    if (isList) {
+    if (v === 1) {
       return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: li(colors.primary), fontFamily: ff}}>
         <div style={{textAlign: "center", marginBottom: mob ? 20 : 32}}>
           <ET k="ls-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
-          <ET k="ls-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 18 : 22, fontWeight: 700, color: colors.primary, margin: 0, lineHeight: 1.3, fontFamily: ff}}/>
+          <ET k="ls-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 18 : 22, fontWeight: 700, color: colors.primary, margin: 0, fontFamily: ff}}/>
         </div>
         <div style={{maxWidth: 600, margin: "0 auto"}}>
-          {[1, 2, 3, 4].map(function(i) {
+          {[1,2,3,4].map(function(i) {
             return <div key={i} style={{display: "flex", alignItems: "flex-start", gap: mob ? 12 : 16, padding: (mob ? 12 : 16) + "px 0", borderBottom: i < 4 ? "1px solid rgba(0,0,0,.06)" : "none"}}>
-              <div style={{width: mob ? 36 : 44, height: mob ? 36 : 44, borderRadius: 10, background: colors.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, flexShrink: 0}}>{icons[i - 1]}</div>
+              <div style={{width: mob ? 36 : 44, height: mob ? 36 : 44, borderRadius: 10, background: colors.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, flexShrink: 0}}>{icons[i-1]}</div>
               <div style={{flex: 1}}>
                 <ET k={"ls-" + i + "-title"} cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 13 : 14, fontWeight: 700, color: colors.primary, marginBottom: 4, fontFamily: ff}}/>
                 <ET k={"ls-" + i + "-desc"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, lineHeight: 1.6, opacity: .6}}/>
@@ -818,18 +731,15 @@ window.MODULAR.register({
         </div>
       </div>;
     }
-
     return <div style={{padding: (mob ? 24 : 40) + "px " + (mob ? 20 : 32) + "px", background: colors.primary, fontFamily: ff}}>
       <div style={{textAlign: "center", marginBottom: mob ? 16 : 24, color: "#fff"}}>
         <ET k="ls-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", opacity: .5, marginBottom: 6}}/>
-        <ET k="ls-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 16 : 20, fontWeight: 700, margin: 0, lineHeight: 1.3, fontFamily: ff}}/>
+        <ET k="ls-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 16 : 20, fontWeight: 700, margin: 0, fontFamily: ff}}/>
       </div>
       <div style={{display: "grid", gridTemplateColumns: mob ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: mob ? 8 : 12}}>
-        {[1, 2, 3, 4].map(function(i) {
-          return <div key={i} style={{textAlign: "center", padding: mob ? 12 : 16, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.08)", color: "#fff", transition: "all .3s"}}
-            onMouseEnter={function(e){e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.transform="translateY(-2px)"}}
-            onMouseLeave={function(e){e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.transform=""}}>
-            <div style={{fontSize: 20, marginBottom: 6}}>{icons[i - 1]}</div>
+        {[1,2,3,4].map(function(i) {
+          return <div key={i} style={{textAlign: "center", padding: mob ? 12 : 16, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.08)", color: "#fff"}}>
+            <div style={{fontSize: 20, marginBottom: 6}}>{icons[i-1]}</div>
             <ET k={"ls-" + i + "-title"} cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 11 : 12, fontWeight: 700, marginBottom: 4}}/>
             <ET k={"ls-" + i + "-desc"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, opacity: .5, lineHeight: 1.4}}/>
           </div>;
@@ -840,145 +750,80 @@ window.MODULAR.register({
 });
 </script>
 
-<!-- MODUL-PRICING -->
+<!-- MODUL-PRICING, GALLERY, LOGOS, CTA, STATS, NEWSLETTER, FOOTER -->
 <script type="text/babel">
+/* PRICING */
 window.MODULAR.register({
-  id: "pricing",
-  name: "Preistabelle",
-  cat: "Konversion",
-  icon: "€",
-  desc: "Pakete und Preise übersichtlich",
-  vars: ["3-Spalten", "2-Spalten", "Feature-Liste"],
-  texts: {
-    "pricing-title": "Unsere Pakete",
-    "pricing-1-name": "Starter", "pricing-1-price": "499€",
-    "pricing-2-name": "Business", "pricing-2-price": "999€",
-    "pricing-3-name": "Premium", "pricing-3-price": "1.999€"
-  },
+  id: "pricing", name: "Preistabelle", cat: "Konversion", icon: "€",
+  desc: "Pakete und Preise uebersichtlich", vars: ["3-Spalten", "2-Spalten", "Feature-Liste"],
+  texts: {"pricing-title":"Unsere Pakete","pricing-1-name":"Starter","pricing-1-price":"499€","pricing-2-name":"Business","pricing-2-price":"999€","pricing-3-name":"Premium","pricing-3-price":"1.999€"},
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode} = cfg;
-    var ff = font || "'DM Sans',sans-serif";
-    var mob = previewMode === "mobile";
-    var v = variants["pricing"] || 0;
-    var ET = window.ET;
-    var li = window.li;
-    var twoCols = v === 1;
-    var isList = v === 2;
-
-    var pkgs = [
-      {i: 1, hl: false, feats: ["5 Module", "Responsive Design", "1 Revision"]},
-      {i: 2, hl: true, feats: ["10 Module", "SEO-Optimierung", "3 Revisionen", "CMS-Zugang"]},
-      {i: 3, hl: false, feats: ["Alle Module", "Premium Support", "Unbegrenzte Revisionen", "Analytics"]}
-    ];
-    var shown = twoCols ? pkgs.slice(0, 2) : pkgs;
-
-    if (isList) {
-      return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
-        <ET k="pricing-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 17 : 20, fontWeight: 700, color: colors.primary, margin: "0 0 20px", textAlign: "center", fontFamily: ff}}/>
-        {pkgs.map(function(pk) {
-          return <div key={pk.i} style={{display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 8, background: pk.hl ? li(colors.accent, .92) : li(colors.primary), border: pk.hl ? "2px solid " + colors.accent : "1px solid rgba(0,0,0,.06)", marginBottom: 8}}>
-            <div><ET k={"pricing-" + pk.i + "-name"} cfg={cfg} edit={edit} tag="span" style={{fontWeight: 700, color: colors.primary, fontSize: 14}}/><div style={{fontSize: 10, opacity: .5, marginTop: 2}}>{pk.feats.join(" · ")}</div></div>
-            <ET k={"pricing-" + pk.i + "-price"} cfg={cfg} edit={edit} tag="span" style={{fontSize: 20, fontWeight: 700, color: colors.primary, fontFamily: ff}}/>
-          </div>;
-        })}
-      </div>;
-    }
-
-    return <div style={{padding: (mob ? 32 : 48) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
-      <ET k="pricing-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 17 : 20, fontWeight: 700, color: colors.primary, margin: "0 0 20px", textAlign: "center", fontFamily: ff}}/>
-      <div style={{display: "grid", gridTemplateColumns: mob ? "1fr" : "repeat(" + shown.length + ",1fr)", gap: 12}}>
-        {shown.map(function(pk) {
-          return <div key={pk.i} style={{padding: mob ? 14 : 16, borderRadius: 10, border: pk.hl ? "2px solid " + colors.accent : "1px solid rgba(0,0,0,.08)", background: pk.hl ? li(colors.accent, .92) : "#fff", textAlign: "center", transition: "all .3s"}}
-            onMouseEnter={function(e){e.currentTarget.style.transform="translateY(-4px)"}}
-            onMouseLeave={function(e){e.currentTarget.style.transform=""}}>
-            <ET k={"pricing-" + pk.i + "-name"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, fontWeight: 600, opacity: .5, marginBottom: 4}}/>
-            <ET k={"pricing-" + pk.i + "-price"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 22, fontWeight: 700, color: colors.primary, marginBottom: 10, fontFamily: ff}}/>
-            {pk.feats.map(function(f, j) { return <div key={j} style={{fontSize: 11, opacity: .55, marginBottom: 4}}>✓ {f}</div>; })}
-            <div className="btn-hover" style={{marginTop: 10, padding: "6px 14px", borderRadius: 6, background: pk.hl ? colors.accent : colors.primary, color: "#fff", fontSize: 11, fontWeight: 600, display: "inline-block"}}>Auswählen</div>
-          </div>;
-        })}
+    var ff = font || "'DM Sans',sans-serif"; var mob = previewMode === "mobile";
+    var v = variants["pricing"] || 0; var ET = window.ET; var li = window.li;
+    var pkgs = [{i:1,hl:false,feats:["5 Module","Responsive Design","1 Revision"]},{i:2,hl:true,feats:["10 Module","SEO-Optimierung","3 Revisionen","CMS-Zugang"]},{i:3,hl:false,feats:["Alle Module","Premium Support","Unbegrenzte Revisionen","Analytics"]}];
+    var shown = v===1?pkgs.slice(0,2):pkgs;
+    if(v===2){return <div style={{padding:(mob?32:48)+"px "+(mob?20:32)+"px",background:"#fff",fontFamily:ff}}>
+      <ET k="pricing-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize:mob?17:20,fontWeight:700,color:colors.primary,margin:"0 0 20px",textAlign:"center",fontFamily:ff}}/>
+      {pkgs.map(function(pk){return <div key={pk.i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderRadius:8,background:pk.hl?li(colors.accent,.92):li(colors.primary),border:pk.hl?"2px solid "+colors.accent:"1px solid rgba(0,0,0,.06)",marginBottom:8,flexWrap:"wrap",gap:8}}>
+        <div><ET k={"pricing-"+pk.i+"-name"} cfg={cfg} edit={edit} tag="span" style={{fontWeight:700,color:colors.primary,fontSize:14}}/><div style={{fontSize:10,opacity:.5,marginTop:2}}>{pk.feats.join(" · ")}</div></div>
+        <ET k={"pricing-"+pk.i+"-price"} cfg={cfg} edit={edit} tag="span" style={{fontSize:20,fontWeight:700,color:colors.primary,fontFamily:ff}}/>
+      </div>;})}
+    </div>;}
+    return <div style={{padding:(mob?32:48)+"px "+(mob?20:32)+"px",background:"#fff",fontFamily:ff}}>
+      <ET k="pricing-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize:mob?17:20,fontWeight:700,color:colors.primary,margin:"0 0 20px",textAlign:"center",fontFamily:ff}}/>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat("+shown.length+",1fr)",gap:12}}>
+        {shown.map(function(pk){return <div key={pk.i} style={{padding:mob?14:16,borderRadius:10,border:pk.hl?"2px solid "+colors.accent:"1px solid rgba(0,0,0,.08)",background:pk.hl?li(colors.accent,.92):"#fff",textAlign:"center"}}>
+          <ET k={"pricing-"+pk.i+"-name"} cfg={cfg} edit={edit} tag="div" style={{fontSize:11,fontWeight:600,opacity:.5,marginBottom:4}}/>
+          <ET k={"pricing-"+pk.i+"-price"} cfg={cfg} edit={edit} tag="div" style={{fontSize:22,fontWeight:700,color:colors.primary,marginBottom:10,fontFamily:ff}}/>
+          {pk.feats.map(function(f,j){return <div key={j} style={{fontSize:11,opacity:.55,marginBottom:4}}>✓ {f}</div>;})}
+          <div className="btn-hover" style={{marginTop:10,padding:"8px 14px",borderRadius:6,background:pk.hl?colors.accent:colors.primary,color:"#fff",fontSize:11,fontWeight:600,display:"inline-block"}}>Auswaehlen</div>
+        </div>;})}
       </div>
     </div>;
   }
 });
-</script>
 
-<!-- MODUL-GALLERY -->
-<script type="text/babel">
+/* GALLERY */
 window.MODULAR.register({
-  id: "gallery",
-  name: "Galerie",
-  cat: "Inhalt",
-  icon: "▣",
-  desc: "Bildergalerie mit Untertiteln und flexiblem Layout",
-  vars: ["Grid 3-spaltig", "Grid 2-spaltig", "Einzelbild gross"],
-  texts: {
-    "gallery-overtitle": "Einblicke",
-    "gallery-title": "Galerie",
-    "gal-1-caption": "Projekt Eins",
-    "gal-2-caption": "Projekt Zwei",
-    "gal-3-caption": "Projekt Drei",
-    "gal-4-caption": "Projekt Vier",
-    "gal-5-caption": "Projekt Fuenf",
-    "gal-6-caption": "Projekt Sechs",
-    "gal-single-caption": "Unser aktuelles Highlight-Projekt"
-  },
+  id: "gallery", name: "Galerie", cat: "Inhalt", icon: "▣",
+  desc: "Bildergalerie mit Untertiteln", vars: ["Grid 3-spaltig","Grid 2-spaltig","Einzelbild gross"],
+  texts: {"gallery-overtitle":"Einblicke","gallery-title":"Galerie","gal-1-caption":"Projekt Eins","gal-2-caption":"Projekt Zwei","gal-3-caption":"Projekt Drei","gal-4-caption":"Projekt Vier","gal-5-caption":"Projekt Fuenf","gal-6-caption":"Projekt Sechs","gal-single-caption":"Unser aktuelles Highlight-Projekt"},
   render: function(cfg, edit) {
     const {colors, font, variants, previewMode, galleryImages} = cfg;
-    const ff = font || "'DM Sans',sans-serif";
-    const mob = previewMode === "mobile";
-    const v = variants["gallery"] || 0;
-    const ET = window.ET;
-    const li = window.li;
-    const is3 = v === 0;
-    const is2 = v === 1;
-    const isSingle = v === 2;
-    const cols = is3 ? (mob ? 2 : 3) : (mob ? 1 : 2);
-    const count = is3 ? 6 : 4;
-
-    if (isSingle) {
-      var singleImg = galleryImages && galleryImages[0];
-      return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
-        <div style={{textAlign: "center", marginBottom: mob ? 16 : 24}}>
-          <ET k="gallery-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
-          <ET k="gallery-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 18 : 22, fontWeight: 700, color: colors.primary, margin: 0, lineHeight: 1.3, fontFamily: ff}}/>
+    const ff = font || "'DM Sans',sans-serif"; const mob = previewMode === "mobile";
+    const v = variants["gallery"] || 0; const ET = window.ET; const li = window.li;
+    const is3=v===0;const is2=v===1;const isSingle=v===2;
+    const cols=is3?(mob?2:3):(mob?1:2);const count=is3?6:4;
+    if(isSingle){var singleImg=galleryImages&&galleryImages[0];
+      return <div style={{padding:(mob?32:56)+"px "+(mob?20:32)+"px",background:"#fff",fontFamily:ff}}>
+        <div style={{textAlign:"center",marginBottom:mob?16:24}}>
+          <ET k="gallery-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:colors.secondary,marginBottom:6}}/>
+          <ET k="gallery-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize:mob?18:22,fontWeight:700,color:colors.primary,margin:0,fontFamily:ff}}/>
         </div>
-        <div style={{borderRadius: 12, overflow: "hidden", background: "linear-gradient(135deg," + colors.primary + "22," + colors.secondary + "33)", maxWidth: 700, margin: "0 auto"}}>
-          <div style={{width: "100%", height: mob ? 200 : 340, position: "relative"}}>
-            {singleImg
-              ? <img src={singleImg} alt="" style={{width: "100%", height: "100%", objectFit: "cover", display: "block"}}/>
-              : <div style={{width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", opacity: .3, fontSize: 12}}>Bild im Tab Medien hochladen</div>
-            }
+        <div style={{borderRadius:12,overflow:"hidden",background:"linear-gradient(135deg,"+colors.primary+"22,"+colors.secondary+"33)",maxWidth:700,margin:"0 auto"}}>
+          <div style={{width:"100%",height:mob?200:340,position:"relative"}}>
+            {singleImg?<img src={singleImg} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",opacity:.3,fontSize:12}}>Bild im Tab Medien hochladen</div>}
           </div>
-          <div style={{padding: mob ? "12px 14px" : "16px 20px", background: "#fff", borderTop: "1px solid rgba(0,0,0,.06)"}}>
-            <ET k="gal-single-caption" cfg={cfg} edit={edit} tag="p" style={{fontSize: mob ? 12 : 13, color: colors.primary, fontWeight: 500, lineHeight: 1.5, margin: 0, textAlign: "center"}}/>
+          <div style={{padding:mob?"12px 14px":"16px 20px",background:"#fff",borderTop:"1px solid rgba(0,0,0,.06)"}}>
+            <ET k="gal-single-caption" cfg={cfg} edit={edit} tag="p" style={{fontSize:mob?12:13,color:colors.primary,fontWeight:500,textAlign:"center"}}/>
           </div>
         </div>
-      </div>;
-    }
-
-    return <div style={{padding: (mob ? 32 : 56) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
-      <div style={{textAlign: "center", marginBottom: mob ? 16 : 24}}>
-        <ET k="gallery-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: colors.secondary, marginBottom: 6}}/>
-        <ET k="gallery-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 18 : 22, fontWeight: 700, color: colors.primary, margin: 0, lineHeight: 1.3, fontFamily: ff}}/>
+      </div>;}
+    return <div style={{padding:(mob?32:56)+"px "+(mob?20:32)+"px",background:"#fff",fontFamily:ff}}>
+      <div style={{textAlign:"center",marginBottom:mob?16:24}}>
+        <ET k="gallery-overtitle" cfg={cfg} edit={edit} tag="div" style={{fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:colors.secondary,marginBottom:6}}/>
+        <ET k="gallery-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize:mob?18:22,fontWeight:700,color:colors.primary,margin:0,fontFamily:ff}}/>
       </div>
-      <div style={{display: "grid", gridTemplateColumns: "repeat(" + cols + ", 1fr)", gap: mob ? 8 : 12}}>
-        {Array.from({length: count}, function(_, i) { return i; }).map(function(i) {
-          var img = galleryImages && galleryImages[i];
-          var imgH = is2 ? (mob ? 160 : 200) : (mob ? 100 : 140);
-          return <div key={i} style={{borderRadius: 10, overflow: "hidden", background: "#fff", border: "1px solid rgba(0,0,0,.06)", transition: "all .3s"}}
-            onMouseEnter={function(e){e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.06)"}}
-            onMouseLeave={function(e){e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}}>
-            <div style={{height: imgH, background: "linear-gradient(" + (135 + i * 25) + "deg," + colors.primary + "1a," + colors.secondary + "2a)", position: "relative", overflow: "hidden"}}>
-              {img
-                ? <img src={img} alt="" style={{width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s"}}
-                    onMouseEnter={function(e){e.target.style.transform="scale(1.05)"}}
-                    onMouseLeave={function(e){e.target.style.transform="scale(1)"}}/>
-                : <div style={{width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", opacity: .2, fontSize: 10}}>Bild {i + 1}</div>
-              }
+      <div style={{display:"grid",gridTemplateColumns:"repeat("+cols+", 1fr)",gap:mob?8:12}}>
+        {Array.from({length:count},function(_,i){return i;}).map(function(i){
+          var img=galleryImages&&galleryImages[i];var imgH=is2?(mob?160:200):(mob?100:140);
+          return <div key={i} style={{borderRadius:10,overflow:"hidden",background:"#fff",border:"1px solid rgba(0,0,0,.06)"}}>
+            <div style={{height:imgH,background:"linear-gradient("+(135+i*25)+"deg,"+colors.primary+"1a,"+colors.secondary+"2a)",position:"relative",overflow:"hidden"}}>
+              {img?<img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",opacity:.2,fontSize:10}}>Bild {i+1}</div>}
             </div>
-            <div style={{padding: mob ? "8px 10px" : "10px 14px"}}>
-              <ET k={"gal-" + (i + 1) + "-caption"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 11, fontWeight: 600, color: colors.primary, lineHeight: 1.4}}/>
+            <div style={{padding:mob?"8px 10px":"10px 14px"}}>
+              <ET k={"gal-"+(i+1)+"-caption"} cfg={cfg} edit={edit} tag="div" style={{fontSize:11,fontWeight:600,color:colors.primary,lineHeight:1.4}}/>
             </div>
           </div>;
         })}
@@ -986,244 +831,139 @@ window.MODULAR.register({
     </div>;
   }
 });
-</script>
 
-<!-- MODUL-LOGOS -->
-<script type="text/babel">
+/* LOGOS */
 window.MODULAR.register({
-  id: "logos",
-  name: "Logo-Leiste",
-  cat: "Social Proof",
-  icon: "◎",
-  desc: "Partnerlogos als scrollende Leiste",
-  vars: ["Scroll", "Statisch"],
-  texts: {},
+  id: "logos", name: "Logo-Leiste", cat: "Social Proof", icon: "◎",
+  desc: "Partnerlogos als scrollende Leiste", vars: ["Scroll","Statisch"], texts: {},
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode, partnerLogos} = cfg;
-    var ff = font || "'DM Sans',sans-serif";
-    var mob = previewMode === "mobile";
-    var v = variants["logos"] || 0;
-    var isStatic = v === 1;
-    var logos = partnerLogos || [];
-    var slots = Math.max(5, logos.length);
-    var items = [];
-    for (var i = 0; i < slots; i++) { items.push(logos[i] || null); }
+    var ff = font || "'DM Sans',sans-serif"; var mob = previewMode === "mobile";
+    var v = variants["logos"] || 0; var isStatic = v === 1;
+    var logos = partnerLogos || []; var slots = Math.max(5, logos.length);
+    var items = []; for (var i = 0; i < slots; i++) items.push(logos[i] || null);
     var shouldScroll = !isStatic && logos.length > 4;
-
     function renderLogos(arr) {
       return arr.map(function(lg, idx) {
-        return <div key={idx} style={{width: mob ? 50 : 70, height: mob ? 28 : 35, borderRadius: 4, background: lg ? "transparent" : "rgba(0,0,0,.04)", border: lg ? "none" : "1px dashed rgba(0,0,0,.1)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 12px"}}>
-          {lg
-            ? <img src={lg} alt="" style={{maxWidth: "100%", maxHeight: "100%", objectFit: "contain", filter: "grayscale(40%)", transition: "filter .3s"}}
-                onMouseEnter={function(e){e.target.style.filter="grayscale(0%)"}}
-                onMouseLeave={function(e){e.target.style.filter="grayscale(40%)"}}/>
-            : <span style={{fontSize: 8, opacity: .3}}>Logo</span>
-          }
+        return <div key={idx} style={{width:mob?50:70,height:mob?28:35,borderRadius:4,background:lg?"transparent":"rgba(0,0,0,.04)",border:lg?"none":"1px dashed rgba(0,0,0,.1)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 12px"}}>
+          {lg?<img src={lg} alt="" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",filter:"grayscale(40%)"}}/>:<span style={{fontSize:8,opacity:.3}}>Logo</span>}
         </div>;
       });
     }
-
-    return <div style={{padding: (mob ? 16 : 24) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff, overflow: "hidden"}}>
-      {shouldScroll
-        ? <div className="marquee-track">{renderLogos(items.concat(items))}</div>
-        : <div style={{display: "flex", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap"}}>{renderLogos(items)}</div>
-      }
+    return <div style={{padding:(mob?16:24)+"px "+(mob?20:32)+"px",background:"#fff",fontFamily:ff,overflow:"hidden"}}>
+      {shouldScroll?<div className="marquee-track">{renderLogos(items.concat(items))}</div>:<div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:8,flexWrap:"wrap"}}>{renderLogos(items)}</div>}
     </div>;
   }
 });
-</script>
 
-<!-- MODUL-CTA -->
-<script type="text/babel">
+/* CTA */
 window.MODULAR.register({
-  id: "cta",
-  name: "CTA-Banner",
-  cat: "Konversion",
-  icon: "▶",
-  desc: "Auffälliger Handlungsaufruf",
-  vars: ["Farbig", "Dunkel", "Gradient"],
-  texts: {
-    "cta-title": "Bereit für Ihre neue Website?",
-    "cta-sub": "Starten Sie jetzt und überzeugen Sie sich selbst.",
-    "cta-btn": "Kostenlos beraten lassen"
-  },
+  id: "cta", name: "CTA-Banner", cat: "Konversion", icon: "▶",
+  desc: "Auffaelliger Handlungsaufruf", vars: ["Farbig","Dunkel","Gradient"],
+  texts: {"cta-title":"Bereit fuer Ihre neue Website?","cta-sub":"Starten Sie jetzt und ueberzeugen Sie sich selbst.","cta-btn":"Kostenlos beraten lassen"},
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode} = cfg;
-    var ff = font || "'DM Sans',sans-serif";
-    var mob = previewMode === "mobile";
-    var v = variants["cta"] || 0;
-    var ET = window.ET;
-    var bgs = [colors.accent, colors.primary, "linear-gradient(135deg," + colors.primary + "," + colors.accent + ")"];
-
-    return <div style={{padding: (mob ? 24 : 32) + "px " + (mob ? 20 : 32) + "px", background: bgs[v] || bgs[0], textAlign: "center", color: "#fff", fontFamily: ff}}>
-      <ET k="cta-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 16 : 18, fontWeight: 700, margin: "0 0 8px", fontFamily: ff}}/>
-      <ET k="cta-sub" cfg={cfg} edit={edit} tag="p" style={{fontSize: 12, opacity: .85, margin: "0 0 14px"}}/>
-      <span className="btn-hover" style={{padding: "8px 24px", background: "#fff", color: colors.accent, borderRadius: 6, fontSize: 12, fontWeight: 700, display: "inline-block"}}>
-        <ET k="cta-btn" cfg={cfg} edit={edit}/>
-      </span>
+    var ff = font || "'DM Sans',sans-serif"; var mob = previewMode === "mobile";
+    var v = variants["cta"] || 0; var ET = window.ET;
+    var bgs = [colors.accent, colors.primary, "linear-gradient(135deg,"+colors.primary+","+colors.accent+")"];
+    return <div style={{padding:(mob?24:32)+"px "+(mob?20:32)+"px",background:bgs[v]||bgs[0],textAlign:"center",color:"#fff",fontFamily:ff}}>
+      <ET k="cta-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize:mob?16:18,fontWeight:700,margin:"0 0 8px",fontFamily:ff}}/>
+      <ET k="cta-sub" cfg={cfg} edit={edit} tag="p" style={{fontSize:12,opacity:.85,margin:"0 0 14px"}}/>
+      <span className="btn-hover" style={{padding:"8px 24px",background:"#fff",color:colors.accent,borderRadius:6,fontSize:12,fontWeight:700,display:"inline-block"}}><ET k="cta-btn" cfg={cfg} edit={edit}/></span>
     </div>;
   }
 });
-</script>
 
-<!-- MODUL-STATS -->
-<script type="text/babel">
+/* STATS */
 window.MODULAR.register({
-  id: "stats",
-  name: "Statistik",
-  cat: "Social Proof",
-  icon: "∞",
-  desc: "Kennzahlen und Erfolge",
-  vars: ["Zahlen", "Fortschritt", "Icons"],
-  texts: {
-    "stats-1": "150+", "stats-1l": "Projekte",
-    "stats-2": "98%", "stats-2l": "Zufriedenheit",
-    "stats-3": "24h", "stats-3l": "Support",
-    "stats-4": "5★", "stats-4l": "Bewertung"
-  },
+  id: "stats", name: "Statistik", cat: "Social Proof", icon: "∞",
+  desc: "Kennzahlen und Erfolge", vars: ["Zahlen","Fortschritt","Icons"],
+  texts: {"stats-1":"150+","stats-1l":"Projekte","stats-2":"98%","stats-2l":"Zufriedenheit","stats-3":"24h","stats-3l":"Support","stats-4":"5★","stats-4l":"Bewertung"},
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode} = cfg;
-    var ff = font || "'DM Sans',sans-serif";
-    var mob = previewMode === "mobile";
-    var v = variants["stats"] || 0;
-    var ET = window.ET;
-    var li = window.li;
-    var useIcons = v === 2;
-    var useProgress = v === 1;
-
-    if (useProgress) {
-      return <div style={{padding: (mob ? 24 : 32) + "px " + (mob ? 20 : 32) + "px", background: "#fff", fontFamily: ff}}>
-        <div style={{display: "grid", gridTemplateColumns: mob ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 16}}>
-          {[1, 2, 3, 4].map(function(i) {
-            return <div key={i} style={{textAlign: "center"}}>
-              <ET k={"stats-" + i} cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 20 : 24, fontWeight: 700, color: colors.primary, fontFamily: ff}}/>
-              <div style={{height: 4, borderRadius: 2, background: li(colors.primary), marginTop: 6, marginBottom: 4, overflow: "hidden"}}>
-                <div style={{height: "100%", width: [75, 98, 60, 100][i-1] + "%", background: colors.accent, borderRadius: 2}}/>
-              </div>
-              <ET k={"stats-" + i + "l"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, opacity: .5}}/>
-            </div>;
-          })}
-        </div>
-      </div>;
-    }
-
-    return <div style={{padding: (mob ? 24 : 32) + "px " + (mob ? 20 : 32) + "px", background: colors.primary, display: "flex", justifyContent: "space-around", color: "#fff", textAlign: "center", flexWrap: "wrap", gap: mob ? 16 : 0, fontFamily: ff}}>
-      {[1, 2, 3, 4].map(function(i) {
-        return <div key={i} style={{minWidth: mob ? 60 : 80}}>
-          {useIcons && <div style={{fontSize: 18, marginBottom: 4}}>{["🚀", "📊", "⏱", "⭐"][i-1]}</div>}
-          <ET k={"stats-" + i} cfg={cfg} edit={edit} tag="div" style={{fontSize: mob ? 20 : 24, fontWeight: 700, fontFamily: ff}}/>
-          <ET k={"stats-" + i + "l"} cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, opacity: .7, marginTop: 2}}/>
-        </div>;
-      })}
+    var ff = font || "'DM Sans',sans-serif"; var mob = previewMode === "mobile";
+    var v = variants["stats"] || 0; var ET = window.ET; var li = window.li;
+    if(v===1){return <div style={{padding:(mob?24:32)+"px "+(mob?20:32)+"px",background:"#fff",fontFamily:ff}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"repeat(2,1fr)":"repeat(4,1fr)",gap:16}}>
+        {[1,2,3,4].map(function(i){return <div key={i} style={{textAlign:"center"}}>
+          <ET k={"stats-"+i} cfg={cfg} edit={edit} tag="div" style={{fontSize:mob?20:24,fontWeight:700,color:colors.primary,fontFamily:ff}}/>
+          <div style={{height:4,borderRadius:2,background:li(colors.primary),marginTop:6,marginBottom:4,overflow:"hidden"}}><div style={{height:"100%",width:[75,98,60,100][i-1]+"%",background:colors.accent,borderRadius:2}}/></div>
+          <ET k={"stats-"+i+"l"} cfg={cfg} edit={edit} tag="div" style={{fontSize:10,opacity:.5}}/>
+        </div>;})}
+      </div>
+    </div>;}
+    return <div style={{padding:(mob?24:32)+"px "+(mob?20:32)+"px",background:colors.primary,display:"flex",justifyContent:"space-around",color:"#fff",textAlign:"center",flexWrap:"wrap",gap:mob?16:0,fontFamily:ff}}>
+      {[1,2,3,4].map(function(i){return <div key={i} style={{minWidth:mob?60:80}}>
+        {v===2&&<div style={{fontSize:18,marginBottom:4}}>{["🚀","📊","⏱","⭐"][i-1]}</div>}
+        <ET k={"stats-"+i} cfg={cfg} edit={edit} tag="div" style={{fontSize:mob?20:24,fontWeight:700,fontFamily:ff}}/>
+        <ET k={"stats-"+i+"l"} cfg={cfg} edit={edit} tag="div" style={{fontSize:10,opacity:.7,marginTop:2}}/>
+      </div>;})}
     </div>;
   }
 });
-</script>
 
-<!-- MODUL-NEWSLETTER -->
-<script type="text/babel">
+/* NEWSLETTER */
 window.MODULAR.register({
-  id: "newsletter",
-  name: "Newsletter",
-  cat: "Konversion",
-  icon: "✧",
-  desc: "Newsletter-Anmeldung",
-  vars: ["Inline", "Banner"],
-  texts: {
-    "newsletter-title": "Newsletter abonnieren",
-    "newsletter-btn": "Anmelden"
-  },
+  id: "newsletter", name: "Newsletter", cat: "Konversion", icon: "✧",
+  desc: "Newsletter-Anmeldung", vars: ["Inline","Banner"],
+  texts: {"newsletter-title":"Newsletter abonnieren","newsletter-btn":"Anmelden"},
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode} = cfg;
-    var ff = font || "'DM Sans',sans-serif";
-    var mob = previewMode === "mobile";
-    var v = variants["newsletter"] || 0;
-    var ET = window.ET;
-    var li = window.li;
+    var ff = font || "'DM Sans',sans-serif"; var mob = previewMode === "mobile";
+    var v = variants["newsletter"] || 0; var ET = window.ET; var li = window.li;
     var isBanner = v === 1;
-
-    return <div style={{padding: (mob ? 20 : 28) + "px " + (mob ? 20 : 32) + "px", background: isBanner ? colors.primary : li(colors.primary), textAlign: "center", color: isBanner ? "#fff" : "inherit", fontFamily: ff}}>
-      <ET k="newsletter-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize: mob ? 14 : 16, fontWeight: 700, color: isBanner ? "#fff" : colors.primary, margin: "0 0 10px", fontFamily: ff}}/>
-      <div style={{display: "flex", gap: 8, maxWidth: 320, margin: "0 auto"}}>
-        <div style={{flex: 1, height: 34, borderRadius: 6, border: "1px solid " + (isBanner ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.1)"), background: isBanner ? "rgba(255,255,255,.1)" : "#fff"}}/>
-        <div className="btn-hover" style={{padding: "0 16px", borderRadius: 6, background: isBanner ? colors.accent : colors.primary, color: "#fff", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center"}}>
-          <ET k="newsletter-btn" cfg={cfg} edit={edit}/>
-        </div>
+    return <div style={{padding:(mob?20:28)+"px "+(mob?20:32)+"px",background:isBanner?colors.primary:li(colors.primary),textAlign:"center",color:isBanner?"#fff":"inherit",fontFamily:ff}}>
+      <ET k="newsletter-title" cfg={cfg} edit={edit} tag="h3" style={{fontSize:mob?14:16,fontWeight:700,color:isBanner?"#fff":colors.primary,margin:"0 0 10px",fontFamily:ff}}/>
+      <div style={{display:"flex",gap:8,maxWidth:320,margin:"0 auto"}}>
+        <div style={{flex:1,height:40,borderRadius:6,border:"1px solid "+(isBanner?"rgba(255,255,255,.3)":"rgba(0,0,0,.1)"),background:isBanner?"rgba(255,255,255,.1)":"#fff"}}/>
+        <div className="btn-hover" style={{padding:"0 16px",borderRadius:6,background:isBanner?colors.accent:colors.primary,color:"#fff",fontSize:12,fontWeight:600,display:"flex",alignItems:"center"}}><ET k="newsletter-btn" cfg={cfg} edit={edit}/></div>
       </div>
     </div>;
   }
 });
-</script>
 
-<!-- MODUL-FOOTER -->
-<script type="text/babel">
+/* FOOTER */
 window.MODULAR.register({
-  id: "footer",
-  name: "Footer",
-  cat: "Abschluss",
-  icon: "▬",
-  desc: "Fußzeile mit Links und Legal",
-  vars: ["4-Spalten", "Kompakt", "Mega"],
-  texts: {
-    "footer-tagline": "Professionelle Websites aus einer Hand"
-  },
+  id: "footer", name: "Footer", cat: "Abschluss", icon: "▬",
+  desc: "Fusszeile mit Links und Legal", vars: ["4-Spalten","Kompakt","Mega"],
+  texts: {"footer-tagline":"Professionelle Websites aus einer Hand"},
   render: function(cfg, edit) {
     var {colors, font, variants, previewMode, logo, companyName: cn, phone, email: em} = cfg;
-    var ff = font || "'DM Sans',sans-serif";
-    var mob = previewMode === "mobile";
-    var v = variants["footer"] || 0;
-    var ET = window.ET;
-    var isCompact = v === 1;
-    var isMega = v === 2;
-
-    var sections = [
-      ["Unternehmen", ["Über uns", "Team", "Karriere", "Blog"]],
-      ["Services", ["Webdesign", "SEO", "Hosting", "Support"]],
-      ["Rechtliches", ["Impressum", "Datenschutz", "AGB", "Cookie-Richtlinie"]]
-    ];
-
-    if (isCompact) {
-      return <div style={{padding: (mob ? 16 : 20) + "px " + (mob ? 20 : 32) + "px", background: colors.primary, color: "#fff", fontFamily: ff}}>
-        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10}}>
-          <div style={{display: "flex", alignItems: "center", gap: 8}}>
-            {logo && <img src={logo} alt="" style={{height: 18}}/>}
-            <span style={{fontWeight: 700, fontSize: 13}}>{cn || "Ihr Unternehmen"}</span>
-          </div>
-          <div style={{display: "flex", gap: 16, fontSize: 10, opacity: .5, flexWrap: "wrap"}}>
-            {["Impressum", "Datenschutz", "AGB", "Cookies"].map(function(l) { return <span key={l} style={{cursor: "default"}}>{l}</span>; })}
-          </div>
-          <div style={{fontSize: 10, opacity: .35}}>© 2026 {cn || "Ihr Unternehmen"}</div>
+    var ff = font || "'DM Sans',sans-serif"; var mob = previewMode === "mobile";
+    var v = variants["footer"] || 0; var ET = window.ET;
+    var isCompact = v === 1; var isMega = v === 2;
+    var sections = [["Unternehmen",["Ueber uns","Team","Karriere","Blog"]],["Services",["Webdesign","SEO","Hosting","Support"]],["Rechtliches",["Impressum","Datenschutz","AGB","Cookie-Richtlinie"]]];
+    if(isCompact){return <div style={{padding:(mob?16:20)+"px "+(mob?16:32)+"px",background:colors.primary,color:"#fff",fontFamily:ff}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {logo&&<img src={logo} alt="" style={{height:18}}/>}
+          <span style={{fontWeight:700,fontSize:13}}>{cn||"Ihr Unternehmen"}</span>
         </div>
-      </div>;
-    }
-
-    return <div style={{padding: (mob ? 20 : 28) + "px " + (mob ? 20 : 32) + "px", background: colors.primary, color: "#fff", fontFamily: ff}}>
-      <div style={{display: "flex", justifyContent: "space-between", marginBottom: 16, flexDirection: mob ? "column" : "row", gap: mob ? 16 : 0}}>
-        <div style={{marginBottom: mob ? 8 : 0, maxWidth: isMega ? 250 : undefined}}>
-          <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
-            {logo && <img src={logo} alt="" style={{height: 20}}/>}
-            <span style={{fontWeight: 700, fontSize: 14}}>{cn || "Ihr Unternehmen"}</span>
+        <div style={{display:"flex",gap:mob?10:16,fontSize:10,opacity:.5,flexWrap:"wrap"}}>
+          {["Impressum","Datenschutz","AGB","Cookies"].map(function(l){return <span key={l} style={{cursor:"default"}}>{l}</span>;})}
+        </div>
+        <div style={{fontSize:10,opacity:.35,width:mob?"100%":"auto"}}>© 2026 {cn||"Ihr Unternehmen"}</div>
+      </div>
+    </div>;}
+    return <div style={{padding:(mob?20:28)+"px "+(mob?16:32)+"px",background:colors.primary,color:"#fff",fontFamily:ff}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:16,flexDirection:mob?"column":"row",gap:mob?16:0}}>
+        <div style={{marginBottom:mob?8:0,maxWidth:isMega?250:undefined}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            {logo&&<img src={logo} alt="" style={{height:20}}/>}
+            <span style={{fontWeight:700,fontSize:14}}>{cn||"Ihr Unternehmen"}</span>
           </div>
-          <ET k="footer-tagline" cfg={cfg} edit={edit} tag="div" style={{fontSize: 10, opacity: .5, maxWidth: 200}}/>
-          {(phone || em) && <div style={{marginTop: 8}}>
-            {phone && <div style={{fontSize: 10, opacity: .5}}>📞 {phone}</div>}
-            {em && <div style={{fontSize: 10, opacity: .5}}>✉ {em}</div>}
-          </div>}
-          {isMega && <div style={{marginTop: 12, display: "flex", gap: 6}}>
-            {["LinkedIn", "Twitter", "Instagram"].map(function(s) { return <span key={s} style={{padding: "3px 8px", borderRadius: 4, background: "rgba(255,255,255,.08)", fontSize: 9, fontWeight: 600, cursor: "default"}}>{s}</span>; })}
+          <ET k="footer-tagline" cfg={cfg} edit={edit} tag="div" style={{fontSize:10,opacity:.5,maxWidth:200}}/>
+          {(phone||em)&&<div style={{marginTop:8}}>
+            {phone&&<div style={{fontSize:10,opacity:.5}}>📞 {phone}</div>}
+            {em&&<div style={{fontSize:10,opacity:.5}}>✉ {em}</div>}
           </div>}
         </div>
-        <div style={{display: "flex", gap: mob ? 16 : 24, flexWrap: "wrap"}}>
-          {sections.map(function(sec, i) {
-            return <div key={i}>
-              <div style={{fontSize: 11, fontWeight: 700, marginBottom: 6}}>{sec[0]}</div>
-              {sec[1].map(function(l) { return <div key={l} style={{fontSize: 10, opacity: .5, marginBottom: 3, cursor: "default"}}>{l}</div>; })}
-            </div>;
-          })}
+        <div style={{display:"flex",gap:mob?16:24,flexWrap:"wrap"}}>
+          {sections.map(function(sec,i){return <div key={i}><div style={{fontSize:11,fontWeight:700,marginBottom:6}}>{sec[0]}</div>{sec[1].map(function(l){return <div key={l} style={{fontSize:10,opacity:.5,marginBottom:3,cursor:"default"}}>{l}</div>;})}</div>;})}
         </div>
       </div>
-      <div style={{borderTop: "1px solid rgba(255,255,255,.15)", paddingTop: 12, fontSize: 10, opacity: .4, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8}}>
-        <span>© 2026 {cn || "Ihr Unternehmen"}. Alle Rechte vorbehalten.</span>
+      <div style={{borderTop:"1px solid rgba(255,255,255,.15)",paddingTop:12,fontSize:10,opacity:.4,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <span>© 2026 {cn||"Ihr Unternehmen"}. Alle Rechte vorbehalten.</span>
         <span>Impressum · Datenschutz · AGB · Cookies</span>
       </div>
     </div>;
@@ -1233,26 +973,8 @@ window.MODULAR.register({
 
 
 <!-- ══════════════════════════════════════════════════════════════
-     MODULE START
-     ─────────────────────────────────────────────────────────────
-     Hier die einzelnen Modul-Blöcke einfügen oder entfernen.
-     Jedes Modul ist ein eigener <script type="text/babel"> Block.
-     Reihenfolge spielt keine Rolle.
-     
-     Zum HINZUFÜGEN: <script>-Block aus der Modul-Datei hier einfügen
-     Zum ENTFERNEN:  Den entsprechenden <script>-Block löschen
-     ══════════════════════════════════════════════════════════════ -->
-
-
-
-<!-- ══════════════════════════════════════════════════════════════
-     MODULE ENDE
-     ══════════════════════════════════════════════════════════════ -->
-
-
-<!-- ══════════════════════════════════════════════════════════════
      KERN: Haupt-Applikation (Landing-Page & Konfigurator)
-     Dieser Block muss IMMER als letztes geladen werden.
+     MIT MOBILE RESPONSIVENESS
      ══════════════════════════════════════════════════════════════ -->
 <script type="text/babel">
 const {useState, useRef, useEffect, useCallback} = React;
@@ -1282,11 +1004,15 @@ function App() {
   const [previewMode, setPM] = useState("desktop");
   const [editMode, setEditMode] = useState(false);
   const [dragIdx, setDI] = useState(null);
+  const [mobileMenu, setMM] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Verfügbare Module aus Registry lesen
+  const ww = window.useWindowWidth();
+  const isMob = ww < 768;
+  const isTablet = ww >= 768 && ww < 1024;
+
   const allModules = window.MODULAR.getAll();
 
-  // Beim ersten Laden: Standard-Module aktivieren (falls vorhanden)
   useEffect(() => {
     if (selMods.length === 0 && allModules.length > 0) {
       const defaultMods = ["nav","hero","features","textimage","testimonials","contact","footer"];
@@ -1295,6 +1021,9 @@ function App() {
       else setSelMods(allModules.slice(0, Math.min(5, allModules.length)).map(m => m.id));
     }
   }, []);
+
+  // Close sidebar when switching to desktop
+  useEffect(() => { if (!isMob && !isTablet) setSidebarOpen(false); }, [isMob, isTablet]);
 
   const cfg = {
     texts, setText:(k,v) => setTexts(p=>({...p,[k]:v})),
@@ -1311,54 +1040,70 @@ function App() {
   };
   const setVar = (id,v) => setVariants(p=>({...p,[id]:v}));
   const cats = [...new Set(allModules.map(m => m.cat))];
-
-  const scrollTo = id => { const el=document.getElementById(id); el?.scrollIntoView({behavior:"smooth"}) };
+  const scrollTo = id => { const el=document.getElementById(id); el?.scrollIntoView({behavior:"smooth"}); setMM(false); };
 
 
   /* ═══════════════════════════════════
      LANDING PAGE
      ═══════════════════════════════════ */
   if (view === "landing") {
+    const px = isMob ? 20 : isTablet ? 28 : 40;
+
     return (
       <div style={{minHeight:"100vh",background:"#fafaf8",fontFamily:"'Syne',sans-serif",color:"#1a1a1a",overflow:"auto",height:"100%"}} className="smooth-scroll">
         {/* NAV */}
-        <div style={{padding:"14px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100,background:"rgba(250,250,248,.92)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(0,0,0,.04)"}}>
+        <div style={{padding: isMob ? "12px 16px" : "14px " + px + "px", display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100,background:"rgba(250,250,248,.92)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(0,0,0,.04)"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>scrollTo("top")}>
             <div style={{width:32,height:32,borderRadius:8,background:"#1a3c5e",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:12,height:12,borderRadius:2,border:"2px solid #fff"}}/></div>
-            <span style={{fontWeight:800,fontSize:18,letterSpacing:"-.02em"}}>MODULAR</span>
+            <span style={{fontWeight:800,fontSize: isMob ? 16 : 18,letterSpacing:"-.02em"}}>MODULAR</span>
           </div>
-          <div style={{display:"flex",gap:24,alignItems:"center",fontSize:13,fontWeight:500}}>
+
+          {/* Desktop Nav */}
+          {!isMob && <div style={{display:"flex",gap: isTablet ? 16 : 24,alignItems:"center",fontSize:13,fontWeight:500}}>
             {[["Konzept","konzept"],["Module","module"],["Branchen","branchen"],["Preise","preise"]].map(([t,id])=>
               <span key={id} onClick={()=>scrollTo(id)} style={{cursor:"pointer",opacity:.6,transition:"opacity .2s"}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>{t}</span>
             )}
             <button onClick={()=>setView("configurator")} className="btn-hover" style={{padding:"8px 20px",background:"#1a3c5e",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Konfigurator →</button>
-          </div>
+          </div>}
+
+          {/* Mobile Hamburger */}
+          {isMob && <button onClick={()=>setMM(!mobileMenu)} style={{background:"none",border:"none",cursor:"pointer",color:"#1a1a1a",padding:4,display:"flex"}}>
+            {mobileMenu ? MI.close : MI.menu}
+          </button>}
         </div>
 
+        {/* Mobile Menu Dropdown */}
+        {isMob && mobileMenu && <div style={{position:"fixed",top:56,left:0,right:0,bottom:0,zIndex:99,background:"rgba(250,250,248,.98)",backdropFilter:"blur(8px)",padding:"24px 20px",display:"flex",flexDirection:"column",gap:4}}>
+          {[["Konzept","konzept"],["Module","module"],["Branchen","branchen"],["Preise","preise"]].map(([t,id])=>
+            <button key={id} onClick={()=>scrollTo(id)} style={{padding:"14px 16px",background:"transparent",border:"none",borderBottom:"1px solid rgba(0,0,0,.06)",fontSize:16,fontWeight:600,textAlign:"left",cursor:"pointer",fontFamily:"inherit",color:"#1a1a1a"}}>{t}</button>
+          )}
+          <button onClick={()=>{setView("configurator");setMM(false)}} style={{padding:"14px 16px",background:"#1a3c5e",color:"#fff",border:"none",borderRadius:10,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginTop:12}}>Konfigurator →</button>
+        </div>}
+
         {/* HERO */}
-        <div id="top" className="fade-up" style={{padding:"80px 40px 60px",maxWidth:1000,margin:"0 auto"}}>
-          <div style={{display:"inline-block",padding:"5px 14px",borderRadius:20,background:"rgba(46,134,193,.08)",color:"#2e86c1",fontSize:12,fontWeight:700,marginBottom:20}}>Website-Baukasten für Agenturen & Unternehmer</div>
-          <h1 style={{fontSize:"clamp(32px,5vw,56px)",fontWeight:800,lineHeight:1.05,letterSpacing:"-.03em",margin:"0 0 20px",maxWidth:700}}>
+        <div id="top" className="fade-up" style={{padding: isMob ? "48px 20px 40px" : "80px " + px + "px 60px",maxWidth:1000,margin:"0 auto"}}>
+          <div style={{display:"inline-block",padding:"5px 14px",borderRadius:20,background:"rgba(46,134,193,.08)",color:"#2e86c1",fontSize: isMob ? 11 : 12,fontWeight:700,marginBottom: isMob ? 14 : 20}}>Website-Baukasten fuer Agenturen</div>
+          <h1 style={{fontSize: isMob ? 28 : "clamp(32px,5vw,56px)",fontWeight:800,lineHeight:1.05,letterSpacing:"-.03em",margin:"0 0 16px",maxWidth:700}}>
             Websites bauen.<br/><span style={{color:"#2e86c1"}}>Modular. Schnell. Professionell.</span>
           </h1>
-          <p style={{fontSize:18,lineHeight:1.6,opacity:.55,maxWidth:520,margin:"0 0 32px",fontWeight:400}}>Stellen Sie individuelle Kundenwebsites aus vorgefertigten Bausteinen zusammen – in Stunden statt Wochen.</p>
+          <p style={{fontSize: isMob ? 15 : 18,lineHeight:1.6,opacity:.55,maxWidth:520,margin:"0 0 28px",fontWeight:400}}>Stellen Sie individuelle Kundenwebsites aus vorgefertigten Bausteinen zusammen.</p>
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <button onClick={()=>setView("configurator")} className="btn-hover" style={{padding:"14px 32px",background:"#1a3c5e",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:8}}>Jetzt konfigurieren {MI.arrow}</button>
-            <button onClick={()=>scrollTo("konzept")} className="btn-hover" style={{padding:"14px 28px",background:"transparent",color:"#1a3c5e",border:"2px solid rgba(26,60,94,.15)",borderRadius:10,fontWeight:600,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>Mehr erfahren</button>
+            <button onClick={()=>setView("configurator")} className="btn-hover" style={{padding: isMob ? "12px 24px" : "14px 32px",background:"#1a3c5e",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize: isMob ? 14 : 15,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:8}}>Jetzt konfigurieren {MI.arrow}</button>
+            <button onClick={()=>scrollTo("konzept")} className="btn-hover" style={{padding: isMob ? "12px 20px" : "14px 28px",background:"transparent",color:"#1a3c5e",border:"2px solid rgba(26,60,94,.15)",borderRadius:10,fontWeight:600,fontSize: isMob ? 14 : 15,cursor:"pointer",fontFamily:"inherit"}}>Mehr erfahren</button>
           </div>
         </div>
 
         {/* KONZEPT */}
-        <div id="konzept" className="fade-up fd1" style={{padding:"60px 40px",maxWidth:1000,margin:"0 auto"}}>
-          <div style={{textAlign:"center",marginBottom:40}}>
+        <div id="konzept" className="fade-up fd1" style={{padding: (isMob ? 40 : 60) + "px " + px + "px",maxWidth:1000,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom: isMob ? 24 : 40}}>
             <div style={{fontSize:11,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:"#2e86c1",marginBottom:8}}>So funktioniert's</div>
-            <h2 style={{fontSize:"clamp(24px,4vw,36px)",fontWeight:800,letterSpacing:"-.02em",margin:0}}>In 3 Schritten zur fertigen Website</h2>
+            <h2 style={{fontSize: isMob ? 22 : "clamp(24px,4vw,36px)",fontWeight:800,letterSpacing:"-.02em",margin:0}}>In 3 Schritten zur fertigen Website</h2>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:24}}>
-            {[{n:"01",t:"Module wählen",d:"Wählen Sie aus über 15 professionellen Bausteinen die passenden Module."},{n:"02",t:"Anpassen",d:"Logo, Farben, Schriften, Texte – alles passt sich automatisch an."},{n:"03",t:"Fertig",d:"Ihre Website ist sofort einsatzbereit und professionell gestaltet."}].map((s,i)=>
-              <div key={i} style={{padding:28,borderRadius:14,background:"#fff",border:"1px solid rgba(0,0,0,.06)",transition:"all .3s"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 12px 32px rgba(0,0,0,.06)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}}>
+          <div style={{display:"grid",gridTemplateColumns: isMob ? "1fr" : "repeat(3,1fr)",gap: isMob ? 16 : 24}}>
+            {[{n:"01",t:"Module waehlen",d:"Waehlen Sie aus professionellen Bausteinen die passenden Module."},{n:"02",t:"Anpassen",d:"Logo, Farben, Schriften, Texte - alles passt sich automatisch an."},{n:"03",t:"Fertig",d:"Ihre Website ist sofort einsatzbereit und professionell gestaltet."}].map((s,i)=>
+              <div key={i} style={{padding: isMob ? 20 : 28,borderRadius:14,background:"#fff",border:"1px solid rgba(0,0,0,.06)"}}>
                 <div style={{fontSize:40,fontWeight:800,color:"rgba(46,134,193,.12)",marginBottom:12,lineHeight:1}}>{s.n}</div>
-                <h3 style={{fontSize:18,fontWeight:700,margin:"0 0 8px"}}>{s.t}</h3>
+                <h3 style={{fontSize: isMob ? 16 : 18,fontWeight:700,margin:"0 0 8px"}}>{s.t}</h3>
                 <p style={{fontSize:13,lineHeight:1.6,opacity:.55,margin:0}}>{s.d}</p>
               </div>
             )}
@@ -1366,21 +1111,19 @@ function App() {
         </div>
 
         {/* MODULE */}
-        <div id="module" style={{padding:"0 40px 60px",maxWidth:1000,margin:"0 auto"}}>
-          <div style={{background:"#1a3c5e",borderRadius:16,padding:24,position:"relative",overflow:"hidden"}}>
+        <div id="module" style={{padding:"0 " + px + "px " + (isMob ? 40 : 60) + "px",maxWidth:1000,margin:"0 auto"}}>
+          <div style={{background:"#1a3c5e",borderRadius:16,padding: isMob ? 16 : 24,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(46,134,193,.15)"}}/>
             <div style={{textAlign:"center",color:"#fff",marginBottom:20,position:"relative"}}>
-              <h2 style={{fontSize:24,fontWeight:800,margin:"0 0 6px"}}>{allModules.length}+ professionelle Module</h2>
-              <p style={{fontSize:13,opacity:.6}}>Jedes Modul in mehreren Varianten verfügbar</p>
+              <h2 style={{fontSize: isMob ? 18 : 24,fontWeight:800,margin:"0 0 6px"}}>{allModules.length}+ professionelle Module</h2>
+              <p style={{fontSize:13,opacity:.6}}>Jedes Modul in mehreren Varianten verfuegbar</p>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(5,allModules.length)},1fr)`,gap:10,position:"relative"}}>
+            <div style={{display:"grid",gridTemplateColumns: isMob ? "repeat(3,1fr)" : isTablet ? "repeat(4,1fr)" : "repeat(5,1fr)",gap: isMob ? 6 : 10,position:"relative"}}>
               {allModules.slice(0,10).map(m=>
-                <div key={m.id} style={{background:"rgba(255,255,255,.06)",borderRadius:10,padding:"14px 10px",textAlign:"center",color:"#fff",border:"1px solid rgba(255,255,255,.08)",transition:"all .3s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.transform="translateY(-3px)"}}
-                  onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.transform=""}}>
-                  <div style={{fontSize:20,marginBottom:4}}>{m.icon}</div>
-                  <div style={{fontSize:10,fontWeight:700}}>{m.name}</div>
-                  <div style={{fontSize:8,opacity:.4,marginTop:2}}>{m.vars.length} Varianten</div>
+                <div key={m.id} style={{background:"rgba(255,255,255,.06)",borderRadius:10,padding: isMob ? "10px 6px" : "14px 10px",textAlign:"center",color:"#fff",border:"1px solid rgba(255,255,255,.08)"}}>
+                  <div style={{fontSize: isMob ? 16 : 20,marginBottom:4}}>{m.icon}</div>
+                  <div style={{fontSize: isMob ? 9 : 10,fontWeight:700}}>{m.name}</div>
+                  <div style={{fontSize:8,opacity:.4,marginTop:2}}>{m.vars.length} Var.</div>
                 </div>
               )}
             </div>
@@ -1388,17 +1131,15 @@ function App() {
         </div>
 
         {/* BRANCHEN */}
-        <div id="branchen" style={{padding:"60px 40px",background:"#1a3c5e"}}>
+        <div id="branchen" style={{padding: (isMob ? 40 : 60) + "px " + px + "px",background:"#1a3c5e"}}>
           <div style={{maxWidth:1000,margin:"0 auto"}}>
-            <div style={{textAlign:"center",marginBottom:40,color:"#fff"}}>
+            <div style={{textAlign:"center",marginBottom: isMob ? 24 : 40,color:"#fff"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:"#e67e22",marginBottom:8}}>Branchen-Templates</div>
-              <h2 style={{fontSize:"clamp(24px,4vw,36px)",fontWeight:800,letterSpacing:"-.02em",margin:0}}>Für jede Branche das passende Template</h2>
+              <h2 style={{fontSize: isMob ? 20 : "clamp(24px,4vw,36px)",fontWeight:800,letterSpacing:"-.02em",margin:0}}>Fuer jede Branche das passende Template</h2>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+            <div style={{display:"grid",gridTemplateColumns: isMob ? "1fr" : isTablet ? "repeat(2,1fr)" : "repeat(3,1fr)",gap:16}}>
               {window.PRESETS.slice(1).map(p=>
-                <div key={p.id} style={{padding:20,borderRadius:12,background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",color:"#fff",transition:"all .3s",cursor:"pointer"}}
-                  onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.1)";e.currentTarget.style.transform="translateY(-3px)"}}
-                  onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.05)";e.currentTarget.style.transform=""}}
+                <div key={p.id} style={{padding: isMob ? 16 : 20,borderRadius:12,background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",color:"#fff",cursor:"pointer"}}
                   onClick={()=>{applyPreset(p);setView("configurator")}}>
                   <div style={{display:"flex",gap:6,marginBottom:12}}>{Object.values(p.colors).map((c,j)=><div key={j} style={{width:20,height:20,borderRadius:4,background:c,border:"1px solid rgba(255,255,255,.2)"}}/>)}</div>
                   <h3 style={{fontSize:16,fontWeight:700,margin:"0 0 6px"}}>{p.name}</h3>
@@ -1410,19 +1151,18 @@ function App() {
         </div>
 
         {/* PREISE */}
-        <div id="preise" style={{padding:"80px 40px",maxWidth:1000,margin:"0 auto"}}>
-          <div style={{textAlign:"center",marginBottom:40}}>
+        <div id="preise" style={{padding: (isMob ? 48 : 80) + "px " + px + "px",maxWidth:1000,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom: isMob ? 24 : 40}}>
             <div style={{fontSize:11,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:"#2e86c1",marginBottom:8}}>Transparent & Fair</div>
-            <h2 style={{fontSize:"clamp(24px,4vw,36px)",fontWeight:800,letterSpacing:"-.02em",margin:0}}>Unsere Pakete</h2>
+            <h2 style={{fontSize: isMob ? 22 : "clamp(24px,4vw,36px)",fontWeight:800,letterSpacing:"-.02em",margin:0}}>Unsere Pakete</h2>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:20}}>
+          <div style={{display:"grid",gridTemplateColumns: isMob ? "1fr" : "repeat(3,1fr)",gap: isMob ? 16 : 20}}>
             {[
-              {n:"Starter",p:"499€",sub:"Ideal für kleine Unternehmen",feats:["Bis zu 5 Module","Responsive Design","1 Revisionsrunde","SSL-Zertifikat","Basis-SEO"]},
+              {n:"Starter",p:"499€",sub:"Ideal fuer kleine Unternehmen",feats:["Bis zu 5 Module","Responsive Design","1 Revisionsrunde","SSL-Zertifikat","Basis-SEO"]},
               {n:"Business",p:"999€",sub:"Unser beliebtestes Paket",hl:true,feats:["Bis zu 10 Module","CMS-Zugang","3 Revisionsrunden","SEO-Optimierung","Google Analytics","Cookie-Banner"]},
-              {n:"Premium",p:"1.999€",sub:"Für anspruchsvolle Projekte",feats:["Alle Module","Premium Support 24/7","Unbegrenzte Revisionen","A/B Testing","Performance-Monitoring","Individuelle Anpassungen"]},
+              {n:"Premium",p:"1.999€",sub:"Fuer anspruchsvolle Projekte",feats:["Alle Module","Premium Support 24/7","Unbegrenzte Revisionen","A/B Testing","Performance-Monitoring","Individuelle Anpassungen"]},
             ].map((pk,i)=>
-              <div key={i} style={{padding:28,borderRadius:14,border:pk.hl?"2px solid #e67e22":"1px solid rgba(0,0,0,.06)",background:pk.hl?"linear-gradient(180deg,rgba(230,126,34,.04),rgba(230,126,34,.01))":"#fff",position:"relative",transition:"all .3s"}}
-                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-6px)";e.currentTarget.style.boxShadow="0 16px 40px rgba(0,0,0,.08)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}}>
+              <div key={i} style={{padding: isMob ? 20 : 28,borderRadius:14,border:pk.hl?"2px solid #e67e22":"1px solid rgba(0,0,0,.06)",background:pk.hl?"linear-gradient(180deg,rgba(230,126,34,.04),rgba(230,126,34,.01))":"#fff",position:"relative"}}>
                 {pk.hl&&<div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",padding:"3px 14px",borderRadius:12,background:"#e67e22",color:"#fff",fontSize:10,fontWeight:700}}>Beliebt</div>}
                 <div style={{textAlign:"center",marginBottom:20}}>
                   <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{pk.n}</div>
@@ -1430,37 +1170,37 @@ function App() {
                   <div style={{fontSize:12,opacity:.5}}>{pk.sub}</div>
                 </div>
                 {pk.feats.map((f,j)=><div key={j} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,opacity:.7,marginBottom:8}}><span style={{color:"#27ae60",fontWeight:700}}>✓</span>{f}</div>)}
-                <button className="btn-hover" style={{width:"100%",marginTop:16,padding:"10px 20px",borderRadius:8,border:"none",background:pk.hl?"#e67e22":"#1a3c5e",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Paket wählen</button>
+                <button className="btn-hover" style={{width:"100%",marginTop:16,padding:"12px 20px",borderRadius:8,border:"none",background:pk.hl?"#e67e22":"#1a3c5e",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Paket waehlen</button>
               </div>
             )}
           </div>
         </div>
 
         {/* CTA */}
-        <div style={{padding:"60px 40px",background:"linear-gradient(135deg,#1a3c5e,#2e86c1)",textAlign:"center",color:"#fff"}}>
-          <h2 style={{fontSize:"clamp(24px,4vw,36px)",fontWeight:800,margin:"0 0 12px"}}>Bereit, loszulegen?</h2>
-          <p style={{fontSize:16,opacity:.7,margin:"0 0 28px",maxWidth:500,marginLeft:"auto",marginRight:"auto"}}>Konfigurieren Sie Ihre erste Website in wenigen Minuten.</p>
-          <button onClick={()=>setView("configurator")} className="btn-hover" style={{padding:"16px 40px",background:"#e67e22",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>Konfigurator öffnen →</button>
+        <div style={{padding: (isMob ? 40 : 60) + "px " + px + "px",background:"linear-gradient(135deg,#1a3c5e,#2e86c1)",textAlign:"center",color:"#fff"}}>
+          <h2 style={{fontSize: isMob ? 22 : "clamp(24px,4vw,36px)",fontWeight:800,margin:"0 0 12px"}}>Bereit, loszulegen?</h2>
+          <p style={{fontSize: isMob ? 14 : 16,opacity:.7,margin:"0 0 28px",maxWidth:500,marginLeft:"auto",marginRight:"auto"}}>Konfigurieren Sie Ihre erste Website in wenigen Minuten.</p>
+          <button onClick={()=>setView("configurator")} className="btn-hover" style={{padding: isMob ? "14px 28px" : "16px 40px",background:"#e67e22",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize: isMob ? 14 : 16,cursor:"pointer",fontFamily:"inherit"}}>Konfigurator oeffnen →</button>
         </div>
 
         {/* FOOTER */}
-        <div style={{padding:"48px 40px 24px",background:"#111",color:"#fff"}}>
+        <div style={{padding: (isMob ? 32 : 48) + "px " + px + "px 24px",background:"#111",color:"#fff"}}>
           <div style={{maxWidth:1000,margin:"0 auto"}}>
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:32,marginBottom:32}}>
+            <div style={{display:"grid",gridTemplateColumns: isMob ? "1fr" : isTablet ? "1fr 1fr" : "2fr 1fr 1fr 1fr",gap: isMob ? 24 : 32,marginBottom:32}}>
               <div>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                   <div style={{width:28,height:28,borderRadius:6,background:"#2e86c1",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:10,height:10,borderRadius:2,border:"2px solid #fff"}}/></div>
                   <span style={{fontWeight:800,fontSize:16}}>MODULAR</span>
                 </div>
-                <p style={{fontSize:13,opacity:.5,lineHeight:1.6,maxWidth:280}}>Professionelle Webauftritte für jedes Unternehmen – schnell, modular und auf höchstem Niveau.</p>
+                <p style={{fontSize:13,opacity:.5,lineHeight:1.6,maxWidth:280}}>Professionelle Webauftritte - schnell, modular und auf hoechstem Niveau.</p>
                 <div style={{marginTop:16,display:"flex",gap:8}}>{["LinkedIn","Twitter","GitHub"].map(s=><span key={s} style={{padding:"4px 10px",borderRadius:4,background:"rgba(255,255,255,.08)",fontSize:10,fontWeight:600,cursor:"default"}}>{s}</span>)}</div>
               </div>
-              {[["Produkt",["Konfigurator","Module","Branchen","Preise","Changelog"]],["Unternehmen",["Über uns","Team","Karriere","Blog","Kontakt"]],["Rechtliches",["Impressum","Datenschutz","AGB","Cookie-Richtlinie","Nutzungsbedingungen"]]].map(([t,links],i)=>
+              {[["Produkt",["Konfigurator","Module","Branchen","Preise"]],["Unternehmen",["Ueber uns","Team","Karriere","Blog"]],["Rechtliches",["Impressum","Datenschutz","AGB","Cookies"]]].map(([t,links],i)=>
                 <div key={i}><div style={{fontSize:12,fontWeight:700,marginBottom:12}}>{t}</div>{links.map(l=><div key={l} style={{fontSize:12,opacity:.45,marginBottom:6,cursor:"default"}}>{l}</div>)}</div>
               )}
             </div>
             <div style={{borderTop:"1px solid rgba(255,255,255,.1)",paddingTop:16,display:"flex",justifyContent:"space-between",fontSize:11,opacity:.35,flexWrap:"wrap",gap:8}}>
-              <span>© 2026 MODULAR Website-Baukasten. Alle Rechte vorbehalten.</span>
+              <span>© 2026 MODULAR Website-Baukasten.</span>
               <span>Made with ♥ in Deutschland</span>
             </div>
           </div>
@@ -1471,148 +1211,183 @@ function App() {
 
 
   /* ═══════════════════════════════════
-     KONFIGURATOR
+     KONFIGURATOR - MOBILE RESPONSIVE
      ═══════════════════════════════════ */
   const TABS=[{id:"modules",ico:MI.layers,l:"Module"},{id:"design",ico:MI.palette,l:"Design"},{id:"media",ico:MI.image,l:"Medien"},{id:"fonts",ico:MI.typo,l:"Schrift"}];
+  const showSidebarInline = !isMob && !isTablet;
+  const sidebarW = isTablet ? 300 : 340;
+
+  /* Sidebar-Inhalt als eigene Funktion */
+  function renderSidebarContent() {
+    return <>
+      {/* ── TAB: Module ── */}
+      {activeTab==="modules"&&<>
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>Branchen-Vorlage</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {window.PRESETS.map(p=><button key={p.id} onClick={()=>{applyPreset(p);if(isMob)setSidebarOpen(false)}} style={{padding:"6px 12px",borderRadius:5,border:"1px solid rgba(0,0,0,.08)",background:"rgba(0,0,0,.02)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",color:"inherit"}}>{p.name}</button>)}
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>Aktive Module ({selMods.length})</div>
+          {selMods.map((mid,idx)=>{
+            const mod=window.MODULAR.get(mid);
+            if(!mod) return null;
+            return <div key={mid} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 9px",borderRadius:6,background:"rgba(46,134,193,.04)",marginBottom:3,border:"1px solid rgba(46,134,193,.1)"}}>
+              <span style={{opacity:.25,display:"flex"}}>{MI.grip}</span>
+              <span style={{fontSize:13,width:20,textAlign:"center"}}>{mod.icon}</span>
+              <span style={{flex:1,fontWeight:600,fontSize:11}}>{mod.name}</span>
+              <select value={variants[mid]||0} onChange={e=>setVar(mid,parseInt(e.target.value))} style={{fontSize:10,padding:"3px 4px",borderRadius:3,border:"1px solid rgba(0,0,0,.1)",background:"#fff",fontFamily:"inherit",cursor:"pointer",maxWidth:80}}>
+                {mod.vars.map((vn,vi)=><option key={vi} value={vi}>{vn}</option>)}
+              </select>
+              <button onClick={()=>toggle(mid)} style={{background:"none",border:"none",cursor:"pointer",opacity:.25,color:"inherit",padding:2,display:"flex"}}>{MI.trash}</button>
+            </div>;
+          })}
+        </div>
+        {cats.map(cat=>{
+          const mods=allModules.filter(m=>m.cat===cat);
+          return <div key={cat} style={{marginBottom:12}}>
+            <div style={{fontSize:10,fontWeight:700,opacity:.35,textTransform:"uppercase",letterSpacing:".1em",marginBottom:5}}>{cat}</div>
+            {mods.map(mod=><div key={mod.id} onClick={()=>toggle(mod.id)} style={{padding:"10px 12px",borderRadius:7,border:selMods.includes(mod.id)?"2px solid #2e86c1":"2px solid transparent",background:selMods.includes(mod.id)?"rgba(46,134,193,.06)":"rgba(0,0,0,.02)",cursor:"pointer",marginBottom:4,display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:28,height:28,borderRadius:5,background:selMods.includes(mod.id)?"#2e86c1":"rgba(0,0,0,.06)",color:selMods.includes(mod.id)?"#fff":"rgba(0,0,0,.35)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,flexShrink:0}}>{mod.icon}</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600}}>{mod.name}</div><div style={{fontSize:10,opacity:.45,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mod.desc}</div></div>
+              {selMods.includes(mod.id)&&<span style={{color:"#2e86c1",flexShrink:0}}>{MI.check}</span>}
+            </div>)}
+          </div>;
+        })}
+      </>}
+
+      {/* ── TAB: Design ── */}
+      {activeTab==="design"&&<>
+        <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Farbschema</div>
+        <CI label="Primaerfarbe" value={colors.primary} onChange={v=>setColors(p=>({...p,primary:v}))}/>
+        <CI label="Sekundaerfarbe" value={colors.secondary} onChange={v=>setColors(p=>({...p,secondary:v}))}/>
+        <CI label="Akzentfarbe" value={colors.accent} onChange={v=>setColors(p=>({...p,accent:v}))}/>
+        <div style={{display:"flex",gap:6,margin:"12px 0"}}>{Object.entries(colors).map(([k,v])=><div key={k} style={{flex:1,textAlign:"center"}}><div style={{height:32,borderRadius:6,background:v}}/><div style={{fontSize:9,opacity:.4,marginTop:2}}>{k}</div></div>)}</div>
+        <div style={{height:1,background:"rgba(0,0,0,.06)",margin:"14px 0"}}/>
+        <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Unternehmensdaten</div>
+        {[["Firmenname",companyName,setCN],["Strasse & Hausnr.",address,setAddr],["PLZ",zip,setZip],["Stadt",city,setCity],["Telefon",phone,setPhone],["E-Mail",email,setEmail]].map(([l,v,fn],i)=>
+          <div key={i} style={{marginBottom:6}}>
+            <div style={{fontSize:10,fontWeight:600,opacity:.5,marginBottom:2}}>{l}</div>
+            <input type="text" value={v} onChange={e=>fn(e.target.value)} placeholder={l} style={{width:"100%",padding:"8px 10px",borderRadius:5,border:"1px solid rgba(0,0,0,.1)",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+          </div>
+        )}
+      </>}
+
+      {/* ── TAB: Medien ── */}
+      {activeTab==="media"&&<>
+        <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Logo & Bilder</div>
+        <FU label="Firmenlogo" accept="image/*" onUp={(d)=>setLogo(d)} preview={logo} onRm={()=>setLogo(null)}/>
+        <FU label="Hero-Bild" accept="image/*" onUp={d=>setHeroImage(d)} preview={heroImage} onRm={()=>setHeroImage(null)}/>
+        <div style={{height:1,background:"rgba(0,0,0,.06)",margin:"14px 0"}}/>
+        <div style={{fontSize:11,fontWeight:600,marginBottom:6}}>Galerie ({galleryImages.length}/6)</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:8}}>
+          {galleryImages.map((img,i)=><div key={i} style={{position:"relative",borderRadius:5,overflow:"hidden",aspectRatio:"1"}}>
+            <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            <button onClick={()=>setGalleryImages(p=>p.filter((_,j)=>j!==i))} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:3,width:20,height:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{MI.x}</button>
+          </div>)}
+        </div>
+        {galleryImages.length<6&&<FU label="Galerie-Bild" accept="image/*" onUp={d=>setGalleryImages(p=>[...p,d])} preview={null} onRm={()=>{}}/>}
+        <div style={{height:1,background:"rgba(0,0,0,.06)",margin:"14px 0"}}/>
+        <div style={{fontSize:11,fontWeight:600,marginBottom:6}}>Partner-Logos ({partnerLogos.length}/8)</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:8}}>
+          {partnerLogos.map((img,i)=><div key={i} style={{position:"relative",borderRadius:5,overflow:"hidden",aspectRatio:"2/1",background:"#f8f8f8",border:"1px solid rgba(0,0,0,.06)"}}>
+            <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:2}}/>
+            <button onClick={()=>setPartnerLogos(p=>p.filter((_,j)=>j!==i))} style={{position:"absolute",top:1,right:1,background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:3,width:14,height:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{MI.x}</button>
+          </div>)}
+        </div>
+        {partnerLogos.length<8&&<FU label="Partner-Logo" accept="image/*" onUp={d=>setPartnerLogos(p=>[...p,d])} preview={null} onRm={()=>{}}/>}
+      </>}
+
+      {/* ── TAB: Schrift ── */}
+      {activeTab==="fonts"&&<>
+        <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Schriftart</div>
+        {window.FONTS.map(f=><div key={f.name} onClick={()=>setFont(f.val)} style={{padding:"12px 14px",borderRadius:7,border:font===f.val?"2px solid #2e86c1":"2px solid transparent",background:font===f.val?"rgba(46,134,193,.06)":"rgba(0,0,0,.02)",cursor:"pointer",marginBottom:5}}>
+          <div style={{fontSize:15,fontFamily:f.val,fontWeight:700,marginBottom:1}}>{f.name}</div>
+          <div style={{fontSize:11,fontFamily:f.val,opacity:.5}}>Professionelle Websites modular gebaut</div>
+        </div>)}
+      </>}
+    </>;
+  }
 
   return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",color:"#1a1a1a",overflow:"hidden"}}>
-      {/* SIDEBAR */}
-      <div style={{width:340,borderRight:"1px solid rgba(0,0,0,.06)",display:"flex",flexDirection:"column",background:"#fff",flexShrink:0}}>
-        <div style={{padding:"10px 14px",borderBottom:"1px solid rgba(0,0,0,.06)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>setView("landing")}>
-            <div style={{width:26,height:26,borderRadius:6,background:"#1a3c5e",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:9,height:9,borderRadius:2,border:"2px solid #fff"}}/></div>
-            <span style={{fontWeight:700,fontSize:13}}>MODULAR</span>
+    <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",color:"#1a1a1a",overflow:"hidden",flexDirection:"column"}}>
+
+      {/* KONFIGURATOR TOOLBAR */}
+      <div style={{padding: isMob ? "8px 12px" : "7px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid rgba(0,0,0,.06)",background:"#fff",gap:8,flexShrink:0,flexWrap:"wrap"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setView("landing")}>
+            <div style={{width:24,height:24,borderRadius:5,background:"#1a3c5e",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:8,height:8,borderRadius:2,border:"2px solid #fff"}}/></div>
+            {!isMob && <span style={{fontWeight:700,fontSize:12}}>MODULAR</span>}
           </div>
-          <div style={{fontSize:10,color:"#2e86c1",fontWeight:600}}>Konfigurator</div>
+          {!isMob && <div style={{fontSize:10,color:"#2e86c1",fontWeight:600,marginLeft:4}}>Konfigurator</div>}
         </div>
 
-        <div style={{display:"flex",borderBottom:"1px solid rgba(0,0,0,.06)"}}>
-          {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"9px 4px",background:"transparent",border:"none",borderBottom:activeTab===t.id?"2px solid #2e86c1":"2px solid transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:activeTab===t.id?"#2e86c1":"rgba(0,0,0,.3)",transition:"all .2s",fontFamily:"inherit"}}>
-            {t.ico}<span style={{fontSize:9,fontWeight:600}}>{t.l}</span>
-          </button>)}
-        </div>
+        <div style={{display:"flex",gap:4,alignItems:"center"}}>
+          {/* Preview Mode Buttons */}
+          {!isMob && [["desktop","Desktop"],["tablet","Tablet"],["mobile","Mobile"]].map(([id,l])=>
+            <button key={id} onClick={()=>setPM(id)} style={{padding:"4px 10px",borderRadius:5,border:"none",background:previewMode===id?"#1a3c5e":"rgba(0,0,0,.04)",color:previewMode===id?"#fff":"rgba(0,0,0,.45)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+          )}
+          {isMob && <select value={previewMode} onChange={e=>setPM(e.target.value)} style={{padding:"4px 8px",borderRadius:5,border:"1px solid rgba(0,0,0,.1)",fontSize:10,fontWeight:600,fontFamily:"inherit",background:"#fff"}}>
+            <option value="desktop">Desktop</option>
+            <option value="tablet">Tablet</option>
+            <option value="mobile">Mobile</option>
+          </select>}
 
-        <div style={{flex:1,overflow:"auto",padding:14}}>
+          {/* Edit Mode Toggle */}
+          <button onClick={()=>setEditMode(!editMode)} style={{padding: isMob ? "6px 10px" : "4px 12px",borderRadius:5,border:editMode?"2px solid #e67e22":"2px solid rgba(0,0,0,.08)",background:editMode?"rgba(230,126,34,.08)":"transparent",color:editMode?"#e67e22":"rgba(0,0,0,.5)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
+            {MI.edit} {isMob ? "" : (editMode?"Bearbeitung aktiv":"Texte bearbeiten")}
+          </button>
 
-          {/* ── TAB: Module ── */}
-          {activeTab==="modules"&&<>
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>Branchen-Vorlage</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {window.PRESETS.map(p=><button key={p.id} onClick={()=>applyPreset(p)} style={{padding:"4px 10px",borderRadius:5,border:"1px solid rgba(0,0,0,.08)",background:"rgba(0,0,0,.02)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",color:"inherit",transition:"all .2s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.background="rgba(46,134,193,.08)";e.currentTarget.style.borderColor="#2e86c1"}}
-                  onMouseLeave={e=>{e.currentTarget.style.background="rgba(0,0,0,.02)";e.currentTarget.style.borderColor="rgba(0,0,0,.08)"}}>{p.name}</button>)}
-              </div>
-            </div>
-
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>Aktive Module ({selMods.length})</div>
-              {selMods.map((mid,idx)=>{
-                const mod=window.MODULAR.get(mid);
-                if(!mod) return null;
-                return <div key={mid} draggable onDragStart={()=>setDI(idx)} onDragOver={e=>e.preventDefault()} onDrop={()=>{if(dragIdx!==null&&dragIdx!==idx)move(dragIdx,idx);setDI(null)}}
-                  style={{display:"flex",alignItems:"center",gap:5,padding:"5px 7px",borderRadius:6,background:dragIdx===idx?"rgba(46,134,193,.12)":"rgba(46,134,193,.04)",marginBottom:3,border:"1px solid rgba(46,134,193,.1)",cursor:"grab",transition:"background .2s"}}>
-                  <span style={{opacity:.25,cursor:"grab",display:"flex"}}>{MI.grip}</span>
-                  <span style={{fontSize:13,width:20,textAlign:"center"}}>{mod.icon}</span>
-                  <span style={{flex:1,fontWeight:600,fontSize:11}}>{mod.name}</span>
-                  <select value={variants[mid]||0} onChange={e=>{e.stopPropagation();setVar(mid,parseInt(e.target.value))}} style={{fontSize:9,padding:"2px 4px",borderRadius:3,border:"1px solid rgba(0,0,0,.1)",background:"#fff",fontFamily:"inherit",cursor:"pointer",maxWidth:80}} onClick={e=>e.stopPropagation()}>
-                    {mod.vars.map((vn,vi)=><option key={vi} value={vi}>{vn}</option>)}
-                  </select>
-                  <button onClick={e=>{e.stopPropagation();toggle(mid)}} style={{background:"none",border:"none",cursor:"pointer",opacity:.25,color:"inherit",padding:1,display:"flex"}}>{MI.trash}</button>
-                </div>;
-              })}
-            </div>
-
-            {cats.map(cat=>{
-              const mods=allModules.filter(m=>m.cat===cat);
-              return <div key={cat} style={{marginBottom:12}}>
-                <div style={{fontSize:10,fontWeight:700,opacity:.35,textTransform:"uppercase",letterSpacing:".1em",marginBottom:5}}>{cat}</div>
-                {mods.map(mod=><div key={mod.id} onClick={()=>toggle(mod.id)} style={{padding:"8px 10px",borderRadius:7,border:selMods.includes(mod.id)?"2px solid #2e86c1":"2px solid transparent",background:selMods.includes(mod.id)?"rgba(46,134,193,.06)":"rgba(0,0,0,.02)",cursor:"pointer",transition:"all .2s",marginBottom:4,display:"flex",alignItems:"center",gap:8}}
-                  onMouseEnter={e=>e.currentTarget.style.background=selMods.includes(mod.id)?"rgba(46,134,193,.1)":"rgba(0,0,0,.04)"}
-                  onMouseLeave={e=>e.currentTarget.style.background=selMods.includes(mod.id)?"rgba(46,134,193,.06)":"rgba(0,0,0,.02)"}>
-                  <div style={{width:28,height:28,borderRadius:5,background:selMods.includes(mod.id)?"#2e86c1":"rgba(0,0,0,.06)",color:selMods.includes(mod.id)?"#fff":"rgba(0,0,0,.35)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,flexShrink:0,transition:"all .2s"}}>{mod.icon}</div>
-                  <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600}}>{mod.name}</div><div style={{fontSize:10,opacity:.45,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{mod.desc}</div></div>
-                  {selMods.includes(mod.id)&&<span style={{color:"#2e86c1",flexShrink:0}}>{MI.check}</span>}
-                </div>)}
-              </div>;
-            })}
-          </>}
-
-          {/* ── TAB: Design ── */}
-          {activeTab==="design"&&<>
-            <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Farbschema</div>
-            <CI label="Primärfarbe" value={colors.primary} onChange={v=>setColors(p=>({...p,primary:v}))}/>
-            <CI label="Sekundärfarbe" value={colors.secondary} onChange={v=>setColors(p=>({...p,secondary:v}))}/>
-            <CI label="Akzentfarbe" value={colors.accent} onChange={v=>setColors(p=>({...p,accent:v}))}/>
-            <div style={{display:"flex",gap:6,margin:"12px 0"}}>{Object.entries(colors).map(([k,v])=><div key={k} style={{flex:1,textAlign:"center"}}><div style={{height:32,borderRadius:6,background:v}}/><div style={{fontSize:9,opacity:.4,marginTop:2}}>{k}</div></div>)}</div>
-            <div style={{height:1,background:"rgba(0,0,0,.06)",margin:"14px 0"}}/>
-            <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Unternehmensdaten</div>
-            {[["Firmenname",companyName,setCN],["Straße & Hausnr.",address,setAddr],["PLZ",zip,setZip],["Stadt",city,setCity],["Telefon",phone,setPhone],["E-Mail",email,setEmail]].map(([l,v,fn],i)=>
-              <div key={i} style={{marginBottom:6}}>
-                <div style={{fontSize:10,fontWeight:600,opacity:.5,marginBottom:2}}>{l}</div>
-                <input type="text" value={v} onChange={e=>fn(e.target.value)} placeholder={l} style={{width:"100%",padding:"6px 10px",borderRadius:5,border:"1px solid rgba(0,0,0,.1)",fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-              </div>
-            )}
-          </>}
-
-          {/* ── TAB: Medien ── */}
-          {activeTab==="media"&&<>
-            <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Logo & Bilder</div>
-            <FU label="Firmenlogo" accept="image/*" onUp={(d)=>setLogo(d)} preview={logo} onRm={()=>setLogo(null)}/>
-            <FU label="Hero-Bild" accept="image/*" onUp={d=>setHeroImage(d)} preview={heroImage} onRm={()=>setHeroImage(null)}/>
-            <div style={{height:1,background:"rgba(0,0,0,.06)",margin:"14px 0"}}/>
-            <div style={{fontSize:11,fontWeight:600,marginBottom:6}}>Galerie ({galleryImages.length}/6)</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:8}}>
-              {galleryImages.map((img,i)=><div key={i} style={{position:"relative",borderRadius:5,overflow:"hidden",aspectRatio:"1"}}>
-                <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                <button onClick={()=>setGalleryImages(p=>p.filter((_,j)=>j!==i))} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:3,width:16,height:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{MI.x}</button>
-              </div>)}
-            </div>
-            {galleryImages.length<6&&<FU label="Galerie-Bild" accept="image/*" onUp={d=>setGalleryImages(p=>[...p,d])} preview={null} onRm={()=>{}}/>}
-            <div style={{height:1,background:"rgba(0,0,0,.06)",margin:"14px 0"}}/>
-            <div style={{fontSize:11,fontWeight:600,marginBottom:6}}>Partner-Logos ({partnerLogos.length}/8)</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:8}}>
-              {partnerLogos.map((img,i)=><div key={i} style={{position:"relative",borderRadius:5,overflow:"hidden",aspectRatio:"2/1",background:"#f8f8f8",border:"1px solid rgba(0,0,0,.06)"}}>
-                <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:2}}/>
-                <button onClick={()=>setPartnerLogos(p=>p.filter((_,j)=>j!==i))} style={{position:"absolute",top:1,right:1,background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:3,width:14,height:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{MI.x}</button>
-              </div>)}
-            </div>
-            {partnerLogos.length<8&&<FU label="Partner-Logo" accept="image/*" onUp={d=>setPartnerLogos(p=>[...p,d])} preview={null} onRm={()=>{}}/>}
-          </>}
-
-          {/* ── TAB: Schrift ── */}
-          {activeTab==="fonts"&&<>
-            <div style={{fontSize:10,fontWeight:700,opacity:.4,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Schriftart</div>
-            {window.FONTS.map(f=><div key={f.name} onClick={()=>setFont(f.val)} style={{padding:"10px 12px",borderRadius:7,border:font===f.val?"2px solid #2e86c1":"2px solid transparent",background:font===f.val?"rgba(46,134,193,.06)":"rgba(0,0,0,.02)",cursor:"pointer",marginBottom:5,transition:"all .2s"}}>
-              <div style={{fontSize:15,fontFamily:f.val,fontWeight:700,marginBottom:1}}>{f.name}</div>
-              <div style={{fontSize:11,fontFamily:f.val,opacity:.5}}>Professionelle Websites modular gebaut</div>
-            </div>)}
-          </>}
+          {/* Mobile: Sidebar Toggle */}
+          {(isMob || isTablet) && <button onClick={()=>setSidebarOpen(!sidebarOpen)} style={{padding:"6px 10px",borderRadius:5,border:sidebarOpen?"2px solid #2e86c1":"2px solid rgba(0,0,0,.08)",background:sidebarOpen?"rgba(46,134,193,.08)":"transparent",color:sidebarOpen?"#2e86c1":"rgba(0,0,0,.5)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
+            {MI.settings} {isMob ? "" : "Einstellungen"}
+          </button>}
         </div>
       </div>
 
-      {/* VORSCHAU */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",background:"#f0f0ed",overflow:"hidden"}}>
-        <div style={{padding:"7px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid rgba(0,0,0,.06)",background:"#fff",gap:8}}>
-          <div style={{display:"flex",gap:5}}>
-            {[["desktop","Desktop"],["tablet","Tablet"],["mobile","Mobile"]].map(([id,l])=>
-              <button key={id} onClick={()=>setPM(id)} style={{padding:"4px 12px",borderRadius:5,border:"none",background:previewMode===id?"#1a3c5e":"rgba(0,0,0,.04)",color:previewMode===id?"#fff":"rgba(0,0,0,.45)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}>{l}</button>
-            )}
+      <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative"}}>
+        {/* ── DESKTOP SIDEBAR ── */}
+        {showSidebarInline && <div style={{width:sidebarW,borderRight:"1px solid rgba(0,0,0,.06)",display:"flex",flexDirection:"column",background:"#fff",flexShrink:0}}>
+          <div style={{display:"flex",borderBottom:"1px solid rgba(0,0,0,.06)"}}>
+            {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"9px 4px",background:"transparent",border:"none",borderBottom:activeTab===t.id?"2px solid #2e86c1":"2px solid transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:activeTab===t.id?"#2e86c1":"rgba(0,0,0,.3)",fontFamily:"inherit"}}>
+              {t.ico}<span style={{fontSize:9,fontWeight:600}}>{t.l}</span>
+            </button>)}
           </div>
-          <button onClick={()=>setEditMode(!editMode)} style={{padding:"4px 12px",borderRadius:5,border:editMode?"2px solid #e67e22":"2px solid rgba(0,0,0,.08)",background:editMode?"rgba(230,126,34,.08)":"transparent",color:editMode?"#e67e22":"rgba(0,0,0,.5)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4,transition:"all .2s"}}>
-            {MI.edit} {editMode?"Bearbeitung aktiv":"Texte bearbeiten"}
-          </button>
-          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,opacity:.4}}>{MI.eye} Vorschau</div>
-        </div>
+          <div style={{flex:1,overflow:"auto",padding:14}}>
+            {renderSidebarContent()}
+          </div>
+        </div>}
 
-        <div style={{flex:1,overflow:"auto",display:"flex",justifyContent:"center",padding:16}}>
+        {/* ── MOBILE/TABLET SIDEBAR OVERLAY ── */}
+        {(isMob || isTablet) && sidebarOpen && <>
+          <div className="sidebar-overlay" onClick={()=>setSidebarOpen(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.3)",zIndex:50}}/>
+          <div className="sidebar-panel" style={{position:"absolute",bottom:0,left:0,right:0,zIndex:51,background:"#fff",borderRadius:"16px 16px 0 0",maxHeight: isMob ? "80vh" : "70vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 32px rgba(0,0,0,.12)"}}>
+            {/* Drag handle */}
+            <div style={{padding:"10px 0 4px",display:"flex",justifyContent:"center"}}>
+              <div style={{width:36,height:4,borderRadius:2,background:"rgba(0,0,0,.15)"}}/>
+            </div>
+            {/* Tab buttons */}
+            <div style={{display:"flex",borderBottom:"1px solid rgba(0,0,0,.06)",paddingLeft:4,paddingRight:4}}>
+              {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 4px",background:"transparent",border:"none",borderBottom:activeTab===t.id?"2px solid #2e86c1":"2px solid transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:activeTab===t.id?"#2e86c1":"rgba(0,0,0,.3)",fontFamily:"inherit"}}>
+                {t.ico}<span style={{fontSize:10,fontWeight:600}}>{t.l}</span>
+              </button>)}
+            </div>
+            {/* Content */}
+            <div style={{flex:1,overflow:"auto",padding:16,WebkitOverflowScrolling:"touch"}}>
+              {renderSidebarContent()}
+            </div>
+          </div>
+        </>}
+
+        {/* ── PREVIEW AREA ── */}
+        <div style={{flex:1,overflow:"auto",display:"flex",justifyContent:"center",padding: isMob ? 8 : 16,WebkitOverflowScrolling:"touch"}}>
           <div style={{width:previewMode==="desktop"?"100%":previewMode==="tablet"?768:375,maxWidth:"100%",background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 4px 24px rgba(0,0,0,.08)",transition:"width .4s ease",alignSelf:"flex-start"}}>
             {selMods.length===0
-              ? <div style={{padding:60,textAlign:"center",opacity:.3}}>
+              ? <div style={{padding: isMob ? 40 : 60,textAlign:"center",opacity:.3}}>
                   <div style={{fontSize:40,marginBottom:12}}>◇</div>
-                  <div style={{fontSize:14,fontWeight:600}}>Keine Module ausgewählt</div>
-                  <div style={{fontSize:12,marginTop:4}}>Fügen Sie Module im linken Panel hinzu</div>
+                  <div style={{fontSize:14,fontWeight:600}}>Keine Module ausgewaehlt</div>
+                  <div style={{fontSize:12,marginTop:4}}>Module ueber {isMob || isTablet ? "den Einstellungen-Button" : "das linke Panel"} hinzufuegen</div>
                 </div>
               : selMods.map(mid => {
                   const mod = window.MODULAR.get(mid);
